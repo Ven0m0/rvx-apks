@@ -1,8 +1,7 @@
-🟢 » Music (arm64-v8a): `8.24.54`  
-🟢 » Music (arm-v7a): `8.24.54`  
-🟢 » Reddit: `2025.12.1`  
+🟢 » Music: `8.34.51`  
+🟢 » Reddit: `2025.34.0`  
 🟢 » Spotify: `9.0.74.1121`  
-🟢 » YouTube: `20.21.37`  
+🟢 » YouTube: `20.33.40`  
 
 - ▶️ » Install [MicroG-RE](https://github.com/WSTxda/MicroG-RE/releases) for non-root YouTube and YT Music APKs
   
