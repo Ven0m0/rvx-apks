@@ -1,6 +1,7 @@
-enable-magisk-update = true
-parallel-jobs = 1
+enable-magisk-update = false
+parallel-jobs = 2
 compression-level = 9
+remove-rv-integrations-checks = true
 
 [YouTube]
 uptodown-dlurl = "https://youtube.en.uptodown.com/android"
@@ -10,8 +11,10 @@ cli-source = "inotia00/revanced-cli"
 rv-brand = "ReVanced Extended"
 included-patches = "'Change version code' 'Custom branding icon for YouTube' 'Custom branding name for YouTube' 'MaterialYou' 'Theme'"
 patcher-args = "--legacy-options=options.json"
-build-mode = "both"
-version = "20.21.37"
+build-mode = "apk"
+arch = "arm64-v8a"                                 # 'arm64-v8a', 'arm-v7a', 'all', 'both'. 'both' downloads both arm64-v8a and arm-v7a. default: all
+riplib = true
+version = "latest"
 
 [Music]
 uptodown-dlurl = "https://youtube-music.en.uptodown.com/android"
@@ -21,9 +24,10 @@ cli-source = "inotia00/revanced-cli"
 rv-brand = "ReVanced Extended"
 included-patches = "'Change version code' 'Custom branding icon for YouTube Music' 'Custom branding name for YouTube Music' 'Disable music video in album' 'Enable debug logging'"
 patcher-args = "--legacy-options=options.json"
-build-mode = "both"
-arch = "both"
-version = "8.24.54"
+build-mode = "apk"
+arch = "arm64-v8a"                                         # 'arm64-v8a', 'arm-v7a', 'all', 'both'. 'both' downloads both arm64-v8a and arm-v7a. default: all
+riplib = true
+version = "latest"
 
 [Reddit]
 uptodown-dlurl = "https://reddit-official-app.en.uptodown.com/android"
@@ -34,6 +38,9 @@ rv-brand = "ReVanced Extended"
 included-patches = "'Change version code' 'Custom branding name for Reddit'"
 patcher-args = "--legacy-options=options.json"
 apkmirror-dpi = "120-640dpi"
+version = "latest"
+arch = "arm64-v8a"                                         # 'arm64-v8a', 'arm-v7a', 'all', 'both'. 'both' downloads both arm64-v8a and arm-v7a. default: all
+riplib = true
 
 [Spotify]
 uptodown-dlurl = "https://spotify.en.uptodown.com/android"
@@ -42,3 +49,7 @@ cli-source = "inotia00/revanced-cli"
 rv-brand = "ReVanced Extended"
 included-patches = "'Change version code' 'Custom branding name for Spotify' 'Custom theme'"
 patcher-args = "--legacy-options=options.json"
+build-mode = "apk"
+version = "latest"
+arch = "arm64-v8a"                                         # 'arm64-v8a', 'arm-v7a', 'all', 'both'. 'both' downloads both arm64-v8a and arm-v7a. default: all
+riplib = true
