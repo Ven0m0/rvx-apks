@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-
+LC_ALL=C
 set -euo pipefail
 shopt -s nullglob
 trap "rm -rf temp/*tmp.* temp/*/*tmp.* temp/*-temporary-files; exit 130" INT
