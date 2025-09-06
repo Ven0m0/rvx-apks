@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
+LC_ALL=C
 MODULE_TEMPLATE_DIR="revanced-magisk"
 CWD=$(pwd)
 TEMP_DIR="temp"
