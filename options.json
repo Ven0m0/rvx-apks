@@ -66,7 +66,7 @@
       },
       {
         "key": "widerButtonsSpace",
-        "value": true
+        "value": false
       },
       {
         "key": "changeTopButtons",
