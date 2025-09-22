@@ -1,6 +1,8 @@
-enable-magisk-update = true
+enable-magisk-update = false
 parallel-jobs = 1
 compression-level = 9
+remove-rv-integrations-checks = true
+rebuild-all-on-update = true
 
 patches-source = "anddea/revanced-patches"
 cli-source = "inotia00/revanced-cli"
