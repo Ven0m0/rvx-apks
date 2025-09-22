@@ -11,7 +11,7 @@ uptodown-dlurl = "https://youtube.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube"
 included-patches = "'Change version code' 'Custom branding icon for YouTube' 'Custom branding name for YouTube' 'MaterialYou' 'Theme'"
 patcher-args = "--legacy-options=options.json"
-build-mode = "both"
+build-mode = "apk"
 version = "20.21.37"
 
 [Music]
@@ -19,7 +19,7 @@ uptodown-dlurl = "https://youtube-music.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube-music"
 included-patches = "'Change version code' 'Custom branding icon for YouTube Music' 'Custom branding name for YouTube Music' 'Disable music video in album' 'Enable debug logging'"
 patcher-args = "--legacy-options=options.json"
-build-mode = "both"
+build-mode = "apk"
 arch = "both"
 
 [Reddit]
