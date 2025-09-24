@@ -1,5 +1,5 @@
 enable-magisk-update = false
-parallel-jobs = 1
+parallel-jobs = 4
 compression-level = 9
 remove-rv-integrations-checks = true
 rebuild-all-on-update = true
@@ -11,21 +11,26 @@ rv-brand = "ReVanced Extended"
 [YouTube]
 uptodown-dlurl = "https://youtube.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube"
-included-patches = "'Change version code' 'Custom branding icon for YouTube' 'Custom branding name for YouTube' 'MaterialYou' 'Theme'"
+included-patches = "'Change version code' 'Custom branding icon for YouTube' 'Custom branding name for YouTube' 'MaterialYou' 'Theme' 'Custom header for YouTube'"
+excluded-patches = "'Alternative thumbnails' 'Enable gradient loading screen' 'Enable debug logging'"
+#patcher-args = "-e 'Custom branding icon for YouTube' -OappIcon='revancify_red'"
 patcher-args = "--legacy-options=options.json"
 build-mode = "apk"
 version = "20.21.37"
-arch = "arm64-v8a"                                         # 'arm64-v8a', 'arm-v7a', 'all', 'both'. 'both' downloads both arm64-v8a and arm-v7a. default: all
+arch = "arm64-v8a"
 riplib = true
 
 [Music]
 uptodown-dlurl = "https://youtube-music.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube-music"
-included-patches = "'Change version code' 'Custom branding icon for YouTube Music' 'Custom branding name for YouTube Music' 'Disable music video in album' 'Enable debug logging'"
+included-patches = "'Change version code' 'Custom branding icon for YouTube Music' 'Custom branding name for YouTube Music' 'Disable music video in album'"
+excluded-patches = "'Enable debug logging'"
+#patcher-args = "-e 'Custom branding icon for YouTube Music' -OappIcon='revancify_red'"
 patcher-args = "--legacy-options=options.json"
 build-mode = "apk"
-version = "auto"
-arch = "arm64-v8a"                                         # 'arm64-v8a', 'arm-v7a', 'all', 'both'. 'both' downloads both arm64-v8a and arm-v7a. default: all
+#version = "auto"
+version = "8.30.54"
+arch = "arm64-v8a"
 riplib = true
 
 [Reddit]
@@ -36,5 +41,16 @@ patcher-args = "--legacy-options=options.json"
 apkmirror-dpi = "320-480dpi"
 build-mode = "apk"
 version = "auto"
-arch = "arm64-v8a"                                         # 'arm64-v8a', 'arm-v7a', 'all', 'both'. 'both' downloads both arm64-v8a and arm-v7a. default: all
+arch = "arm64-v8a"
 riplib = true
+
+[Spotify]
+enabled = true
+app-name = "Spotify"
+build-mode = "apk"
+arch = "arm64-v8a"
+included-patches = "'Spoof client'"
+version = "auto"
+riplib = true
+uptodown-dlurl = "https://spotify.en.uptodown.com/android"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/spotify-ab/spotify-music-podcasts"
