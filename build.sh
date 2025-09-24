@@ -9,6 +9,9 @@ if [ "${1-}" = "clean" ]; then
 	exit 0
 fi
 
+: ENABLE_MAGISK_UPDATE=false
+: REMOVE_RV_INTEGRATIONS_CHECKS=true
+
 source utils.sh
 
 jq --version >/dev/null || abort "\`jq\` is not installed. install it with 'apt install jq' or equivalent"
@@ -27,16 +30,16 @@ if ! PARALLEL_JOBS=$(toml_get "$main_config_t" parallel-jobs); then
 	if [ "$OS" = Android ]; then PARALLEL_JOBS=1; else PARALLEL_JOBS=$(nproc); fi
 fi
 REMOVE_RV_INTEGRATIONS_CHECKS=$(toml_get "$main_config_t" remove-rv-integrations-checks) || REMOVE_RV_INTEGRATIONS_CHECKS="true"
-DEF_PATCHES_VER=$(toml_get "$main_config_t" patches-version) || DEF_PATCHES_VER="latest"
-DEF_CLI_VER=$(toml_get "$main_config_t" cli-version) || DEF_CLI_VER="latest"
-DEF_PATCHES_SRC=$(toml_get "$main_config_t" patches-source) || DEF_PATCHES_SRC="ReVanced/revanced-patches"
-DEF_CLI_SRC=$(toml_get "$main_config_t" cli-source) || DEF_CLI_SRC="j-hc/revanced-cli"
-DEF_RV_BRAND=$(toml_get "$main_config_t" rv-brand) || DEF_RV_BRAND="ReVanced"
+DEF_PATCHES_VER=$(toml_get "$main_config_t" patches-version) || DEF_PATCHES_VER="dev"
+DEF_CLI_VER=$(toml_get "$main_config_t" cli-version) || DEF_CLI_VER="dev"
+DEF_PATCHES_SRC=$(toml_get "$main_config_t" patches-source) || DEF_PATCHES_SRC="anddea/revanced-patches"
+DEF_CLI_SRC=$(toml_get "$main_config_t" cli-source) || DEF_CLI_SRC="inotia00/revanced-cli"
+DEF_RV_BRAND=$(toml_get "$main_config_t" rv-brand) || DEF_RV_BRAND="RVX App"
 mkdir -p "$TEMP_DIR" "$BUILD_DIR"
 
 if [ "${2-}" = "--config-update" ]; then
-	config_update
-	exit 0
+  config_update
+  exit 0
 fi
 
 : >build.md
@@ -137,8 +140,8 @@ for table_name in $(toml_get_table_names); do
 	app_args[dpi]=$(toml_get "$t" apkmirror-dpi) || app_args[dpi]="nodpi"
 	table_name_f=${table_name,,}
 	table_name_f=${table_name_f// /-}
-	app_args[module_prop_name]=$(toml_get "$t" module-prop-name) || app_args[module_prop_name]="${table_name_f}-jhc"
-
+	app_args[module_prop_name]=$(toml_get "$t" module-prop-name) || app_args[module_prop_name]="${table_name_f}-cvnertnc"
+	
 	if [ "${app_args[arch]}" = both ]; then
 		app_args[table]="$table_name (arm64-v8a)"
 		app_args[arch]="arm64-v8a"
