@@ -6,7 +6,10 @@ rebuild-all-on-update = true
 
 patches-source = "anddea/revanced-patches"
 cli-source = "inotia00/revanced-cli"
-rv-brand = "ReVanced Extended"
+rv-brand = "RVX"
+
+patches-version = "dev"
+cli-version = "dev"
 
 [YouTube]
 uptodown-dlurl = "https://youtube.en.uptodown.com/android"
