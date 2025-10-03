@@ -5,8 +5,7 @@
 </h1>
 
 <p align="center">
-    <a href="https://github.com/krvstek/rvx-apks/actions/workflows//build.yml"><img alt="Build Status" src="https://github.com/krvstek/rvx-apks/actions/workflows/build.yml/badge.svg"></a>
-    <a href="https://github.com/krvstek/rvx-apks/releases/latest"><img alt="Click here!" src="https://img.shields.io/github/release-date/krvstek/rvx-apks?display_date=created_at&logo=android&label=Latest%20Release"></a>
+    <a href="https://github.com/github.com/Ven0m0/rvx-apks/actions/build.yml"><imgd.y/rvx-apksStatusns/workflows//build.yml"><img alt="Builpks/actions/workflows/build.yml/badge.sv"></aapks/actions/workflows/github.com/krvstek/rvx-apks/releases/latest"><imgthub.com/krvstek/rvx-apks/releases/latest"><img alt="Click here!" src="https://img.shields.io/github/release-date/krvstek/rvx-apks?display_date=created_at&logo=android&label=Latest%20Release"></a>
     <img alt="Downloads (Overall)" src="https://img.shields.io/github/downloads/krvstek/rvx-apks/total?logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Overall)">
     <img alt="Downloads (Latest)" src="https://img.shields.io/github/downloads/krvstek/rvx-apks/latest/total?sort=semver&logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Latest)">
 </p>
@@ -27,7 +26,7 @@ Here you can download and use applications selected for this repository, which a
 - ✨ **And much more!**
 
 ## 💎 Updating apps
-You can update apps using [Obtainium](https://github.com/ImranR98/Obtainium/?tab=readme-ov-file#installation), which will check for new releases in this repo. Download the [config](https://github.com/krvstek/rvx-apks/blob/main/obtainium-rvx.json) and import it into Obtainium.
+You can update apps using [Obtainium](https://github.com/ImranR98/Obtainium/?tab=readme-ov-file#installation), which will check for new releases in this repo. Download the [config](https://github.com/Ven0m0/rvx-apks/blob/main/obtainium-rvx.json) and import it into Obtainium.
 
 ## 📋 List of repos/apps in this repository
 ### [🧩 `ReVanced Extended`](https://github.com/anddea/revanced-patches)
