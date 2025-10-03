@@ -37,6 +37,7 @@ arch = "arm64-v8a"
 riplib = true
 
 [Reddit]
+enabled = false
 uptodown-dlurl = "https://reddit-official-app.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/redditinc/reddit"
 included-patches = "'Change version code' 'Custom branding name for Reddit'"
@@ -48,7 +49,7 @@ arch = "arm64-v8a"
 riplib = true
 
 [Spotify]
-enabled = true
+enabled = false
 app-name = "Spotify"
 build-mode = "apk"
 arch = "arm64-v8a"
