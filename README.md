@@ -5,9 +5,9 @@
 </h1>
 
 <p align="center">
-    <a href="https://github.com/github.com/Ven0m0/rvx-apks/actions/build.yml"><imgd.y/rvx-apksStatusns/workflows//build.yml"><img alt="Builpks/actions/workflows/build.yml/badge.sv"></aapks/actions/workflows/github.com/krvstek/rvx-apks/releases/latest"><imgthub.com/krvstek/rvx-apks/releases/latest"><img alt="Click here!" src="https://img.shields.io/github/release-date/krvstek/rvx-apks?display_date=created_at&logo=android&label=Latest%20Release"></a>
-    <img alt="Downloads (Overall)" src="https://img.shields.io/github/downloads/krvstek/rvx-apks/total?logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Overall)">
-    <img alt="Downloads (Latest)" src="https://img.shields.io/github/downloads/krvstek/rvx-apks/latest/total?sort=semver&logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Latest)">
+    <a href="https://github.com/github.com/Ven0m0/rvx-apks/actions/build.yml"><imgd.y/rvx-apksStatusns/workflows//build.yml"><img alt="Builpks/actions/workflows/build.yml/badge.svg"></aapks/actions/workflows/github.com/Ven0m0/rvx-apks/releases/latest"><imgthub.com/krvstek/rvx-apks/releases/latest"><img alt="Click here!" src="https://img.shields.io/github/release-date/Ven0m0/rvx-apks?display_date=created_at&logo=android&label=Latest%20Release"></a>
+    <img alt="Downloads (Overall)" src="https://img.shields.io/github/downloads/Ven0m0/rvx-apks/total?logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Overall)">
+    <img alt="Downloads (Latest)" src="https://img.shields.io/github/downloads/Ven0m0/rvx-apks/latest/total?sort=semver&logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Latest)">
 </p>
 
 ## ⭐ Overview
