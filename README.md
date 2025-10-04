@@ -1,13 +1,14 @@
 <h1 align="center">
     <picture>
-        <img src="https://readme-typing-svg.demolab.com?font=Google+Sans&size=25&pause=1000&color=F70000&center=true&vCenter=true&random=false&width=435&lines=%F0%9F%93%A6+ReVanced's+pre-made+APKs">
+        <img loading="lazy" decoding="async" src="https://readme-typing-svg.demolab.com?font=Google+Sans&size=25&pause=1000&color=F70000&center=true&vCenter=true&random=false&width=435&lines=%F0%9F%93%A6+ReVanced's+pre-made+APKs">
     </picture>
 </h1>
 
 <p align="center">
-    <a href="https://github.com/github.com/Ven0m0/rvx-apks/actions/build.yml"><imgd.y/rvx-apksStatusns/workflows//build.yml"><img alt="Builpks/actions/workflows/build.yml/badge.svg"></aapks/actions/workflows/github.com/Ven0m0/rvx-apks/releases/latest"><imgthub.com/krvstek/rvx-apks/releases/latest"><img alt="Click here!" src="https://img.shields.io/github/release-date/Ven0m0/rvx-apks?display_date=created_at&logo=android&label=Latest%20Release"></a>
-    <img alt="Downloads (Overall)" src="https://img.shields.io/github/downloads/Ven0m0/rvx-apks/total?logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Overall)">
-    <img alt="Downloads (Latest)" src="https://img.shields.io/github/downloads/Ven0m0/rvx-apks/latest/total?sort=semver&logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Latest)">
+    <a href="https://github.com/krvstek/Ven0m0/actions/workflows//build.yml"><img alt="Build Status" src="https://github.com/Ven0m0/rvx-apks/actions/workflows/build.yml/badge.svg"></a>
+    <a href="https://github.com/krvstek/Ven0m0/releases/latest"><img alt="Click here!" src="https://img.shields.io/github/release-date/Ven0m0/rvx-apks?display_date=created_at&logo=android&label=Latest%20Release"></a>
+    <img loading="lazy" decoding="async" alt="Downloads (Overall)" src="https://img.shields.io/github/downloads/Ven0m0/rvx-apks/total?logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Overall)">
+    <img loading="lazy" decoding="async" alt="Downloads (Latest)" src="https://img.shields.io/github/downloads/Ven0m0/rvx-apks/latest/total?sort=semver&logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Latest)">
 </p>
 
 ## ⭐ Overview
@@ -33,9 +34,9 @@ You can update apps using [Obtainium](https://github.com/ImranR98/Obtainium/?tab
 <details>
 <summary>➡️ Apps List:</summary>
 
-- <picture><img src="https://play-lh.googleusercontent.com/6am0i3walYwNLc08QOOhRJttQENNGkhlKajXSERf3JnPVRQczIyxw2w3DxeMRTOSdsY=s48-rw" width="20" height="20"></picture> [`YouTube`](https://play.google.com/store/apps/details?id=com.google.android.youtube)
-- <picture><img src="https://play-lh.googleusercontent.com/zD8UA5CRdiPzbvTwGKtzR4KjQpxqEK6X0tGDpzEaOo0xPEvG6HUiC_0qkpTfzpuMTqU=s48-rw" width="20" height="20"></picture> [`YouTube Music`](https://play.google.com/store/apps/details?id=com.google.android.apps.youtube.music)
-- <picture><img src="https://play-lh.googleusercontent.com/NaFAbO7ExS4NRAvt2GYkNY6OQf9oVXwmdMTZzA6zrgjjSxhQuTCnjHyf7TgYcoSGqQ=s48-rw" width="20" height="20"></picture> [`Reddit`](https://play.google.com/store/apps/details?id=com.reddit.frontpage)
+- <picture><img loading="lazy" decoding="async" src="https://play-lh.googleusercontent.com/6am0i3walYwNLc08QOOhRJttQENNGkhlKajXSERf3JnPVRQczIyxw2w3DxeMRTOSdsY=s48-rw" width="20" height="20"></picture> [`YouTube`](https://play.google.com/store/apps/details?id=com.google.android.youtube)
+- <picture><img loading="lazy" decoding="async" src="https://play-lh.googleusercontent.com/zD8UA5CRdiPzbvTwGKtzR4KjQpxqEK6X0tGDpzEaOo0xPEvG6HUiC_0qkpTfzpuMTqU=s48-rw" width="20" height="20"></picture> [`YouTube Music`](https://play.google.com/store/apps/details?id=com.google.android.apps.youtube.music)
+- <picture><img loading="lazy" decoding="async" src="https://play-lh.googleusercontent.com/NaFAbO7ExS4NRAvt2GYkNY6OQf9oVXwmdMTZzA6zrgjjSxhQuTCnjHyf7TgYcoSGqQ=s48-rw" width="20" height="20"></picture> [`Reddit`](https://play.google.com/store/apps/details?id=com.reddit.frontpage)
 </details>
 
 ## 📜 Resources & Credits
