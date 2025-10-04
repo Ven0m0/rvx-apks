@@ -7,7 +7,6 @@ rebuild-all-on-update = true
 patches-source = "anddea/revanced-patches"
 cli-source = "inotia00/revanced-cli"
 rv-brand = "RVX"
-
 patches-version = "dev"
 cli-version = "dev"
 
@@ -16,22 +15,24 @@ uptodown-dlurl = "https://youtube.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube"
 included-patches = "'Change version code' 'Custom branding icon for YouTube' 'Custom branding name for YouTube' 'MaterialYou' 'Theme' 'Custom header for YouTube'"
 excluded-patches = "'Alternative thumbnails' 'Enable gradient loading screen' 'Enable debug logging'"
-#patcher-args = "-e 'Custom branding icon for YouTube' -OappIcon='revancify_red' -OdarkThemeBackgroundColor=@android:color/black -OlightThemeBackgroundColor=@android:color/white -OstrokeColor=?attr/ytChipBackground -e 'Visual preferences icons for YouTube' -OsettingsMenuIcon=revanced"
-patcher-args = "--legacy-options=options.json"
+patcher-args = "-e 'Custom branding icon for YouTube' -OappIcon='revancify_red' -OdarkThemeBackgroundColor=@android:color/black -OlightThemeBackgroundColor=@android:color/white -OstrokeColor=?attr/ytChipBackground -e 'Visual preferences icons for YouTube' -OsettingsMenuIcon=revanced"
+#patcher-args = "--legacy-options=options.json"
 build-mode = "apk"
 version = "20.21.37"
 arch = "arm64-v8a"
 riplib = true
+# Todo:
+# apkmirror-dpi = "480dpi"
+# experimental, highhly depends on release. Probably not usable
 
 [Music]
 uptodown-dlurl = "https://youtube-music.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube-music"
 included-patches = "'Change version code' 'Custom branding icon for YouTube Music' 'Custom branding name for YouTube Music' 'Disable music video in album'"
 excluded-patches = "'Enable debug logging'"
-#patcher-args = "-e 'Custom branding icon for YouTube Music' -OappIcon='revancify_red' -e 'Visual preferences icons for YouTube Music' -OsettingsMenuIcon=revanced"
-patcher-args = "--legacy-options=options.json"
+patcher-args = "-e 'Custom branding icon for YouTube Music' -OappIcon='revancify_red' -e 'Visual preferences icons for YouTube Music' -OsettingsMenuIcon=revanced"
+#patcher-args = "--legacy-options=options.json"
 build-mode = "apk"
-#version = "auto"
 version = "8.30.54"
 arch = "arm64-v8a"
 riplib = true
@@ -41,21 +42,22 @@ enabled = false
 uptodown-dlurl = "https://reddit-official-app.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/redditinc/reddit"
 included-patches = "'Change version code' 'Custom branding name for Reddit'"
-patcher-args = "-e 'Custom branding name for Spotify' -OappName='RVX Spotify'"
-#patcher-args = "--legacy-options=options.json"
-apkmirror-dpi = "320-480dpi"
+patcher-args = "-e 'Custom branding name for Reddit' -OappName='RVX Reddit'"
 build-mode = "apk"
 version = "auto"
 arch = "arm64-v8a"
 riplib = true
+apkmirror-dpi = "320-480dpi" # slightly smaller size
 
 [Spotify]
-enabled = false
+enabled = true
+uptodown-dlurl = "https://spotify.en.uptodown.com/android"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/spotify-ab/spotify-music-podcasts"
+included-patches = "'Change version code' 'Custom theme'"
+patcher-args = "-e 'Custom branding name for Spotify' -OappName='RVX Spotify'"
 app-name = "Spotify"
 build-mode = "apk"
 arch = "arm64-v8a"
-included-patches = "'Spoof client'"
 version = "auto"
 riplib = true
-uptodown-dlurl = "https://spotify.en.uptodown.com/android"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/spotify-ab/spotify-music-podcasts"
+
