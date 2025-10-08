@@ -9,8 +9,13 @@ jobs:
     steps:
       - uses: actions/setup-java@v4
         with:
-          distribution: "zulu"
-          java-version: "21"
+          distribution: "temurin"
+          java-version: "17"
+
+      # TODO: dependency install instead of fixed bins
+      #- name: 'Setup APKSigner'
+        #run: |
+          #sudo apt-get install -y apksigner
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,7 +58,10 @@ jobs:
 
       - name: Build APKs
         continue-on-error: true
-        run: ./build.sh config.toml
+        run: |
+          chmod +x build.sh
+          chmod +x utils.sh
+          ./build.sh config.toml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: $GITHUB_REPOSITORY
