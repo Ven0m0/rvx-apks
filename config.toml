@@ -1,5 +1,5 @@
 enable-magisk-update = false
-parallel-jobs = 4
+parallel-jobs = 1
 compression-level = 9
 remove-rv-integrations-checks = true
 rebuild-all-on-update = true
