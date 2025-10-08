@@ -88,3 +88,8 @@ enabled = false
 # archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.zhiliaoapp.musically"
 included-patches = "'SIM spoof'"
 
+#[General]
+#enabled = false
+#patches-source = "jkennethcarino/privacy-revanced-patches"
+#cli-source = "ReVanced/revanced-cli"
+#rv-brand = "jkennethcarino"
