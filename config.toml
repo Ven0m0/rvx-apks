@@ -3,6 +3,9 @@ parallel-jobs = 1
 compression-level = 9
 remove-rv-integrations-checks = true
 rebuild-all-on-update = false
+riplib = true
+build-mode = "apk"
+arch = "arm64-v8a"
 
 patches-version = "dev"
 cli-version = "dev"
@@ -14,7 +17,7 @@ enabled = true
 build-mode = "apk"
 version = "20.21.37"
 arch = "arm64-v8a"
-riplib = true
+#riplib = true
 uptodown-dlurl = "https://youtube.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube"
 #archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.youtube"
@@ -34,7 +37,7 @@ enabled = true
 build-mode = "apk"
 version = "8.30.54"
 arch = "arm64-v8a"
-riplib = true
+#riplib = true
 uptodown-dlurl = "https://youtube-music.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube-music"
 archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.apps.youtube.music"
@@ -68,25 +71,33 @@ app-name = "Spotify"
 build-mode = "apk"
 arch = "arm64-v8a"
 version = "auto"
-riplib = true
+#riplib = true
 included-patches = "'Change version code' 'Custom theme'"
 uptodown-dlurl = "https://spotify.en.uptodown.com/android"
 patcher-args = "-e 'Custom branding name for Spotify' -OappName='RVX Spotify'"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/spotify-ab/spotify-music-podcasts"
-
-[Twitter]
-enabled = false
-build-mode = "apk"
-apkmirror-dpi = "120-640dpi"
-# TODO: ensure dpi is correct
-#dpi = "120-640dpi"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
-# archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.twitter.android"
+patches-source = "anddea/revanced-patches"
+cli-source = "inotia00/revanced-cli"
 
 [TikTok]
 enabled = false
 # archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.zhiliaoapp.musically"
 included-patches = "'SIM spoof'"
+uptodown-dlurl = "https://tiktok.en.uptodown.com/android"
+apkmirror-dlurl = "https://apkmirror.com/apk/tiktok-pte-ltd/tik-tok-including-musical-ly"
+arch = "arm64-v8a"
+build-mode = "apk"
+
+[X-piko]
+enabled = false
+apkmirror-dlurl = "https://apkmirror.com/apk/twitter-inc/twitter/"
+archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.twitter.android"
+patches-source = "crimera/piko"
+integrations-source = "crimera/revanced-integrations"
+included-patches = "'Hide For You' 'Hide Live Threads' 'Disable chirp font' 'Remove view count' 'Hide Banner' 'Hide FAB' 'Hide FAB Menu Buttons' 'Hide Promoted Trends' 'Hide Community Notes' 'Google Ads Patch'"
+apkmirror-dpi = "120-640dpi"
+arch = "arm64-v8a"
+build-mode = "apk"
 
 #[General]
 #enabled = false
