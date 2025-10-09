@@ -123,7 +123,7 @@ jobs:
 
           find . -name "*-update.json" | grep . || : >dummy-update.json
 
-      - uses: stefanzweifel/git-auto-commit-action@v5
+      - uses: stefanzweifel/git-auto-commit-action@v6
         with:
           branch: update
           skip_checkout: true
