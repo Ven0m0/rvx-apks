@@ -40,6 +40,13 @@ You can update apps using [Obtainium](https://github.com/ImranR98/Obtainium/?tab
 - <picture><img loading="lazy" decoding="async" src="https://play-lh.googleusercontent.com/7ynvVIRdhJNAngCg_GI7i8TtH8BqkJYmffeUHsG-mJOdzt1XLvGmbsKuc5Q1SInBjDKN=s48-rw" width="20" height="20"></picture> [`Spotify`](https://play.google.com/store/apps/details?id=com.spotify.music)
 </details>
 
+### [🧩 `Piko`](https://github.com/crimera/piko) (coming soon)
+<details>
+<summary>➡️ Apps List:</summary>
+
+- <picture><img loading="lazy" decoding="async" src="https://play-lh.googleusercontent.com/XyI6Hyz9AFg7E_joVzX2zh6CpWm9B2DG2JuEz5meCFVm4-wTKTnHgqbmg62iFKe4Gzca=s48-rw" width="20" height="20"></picture> [`X`](https://play.google.com/store/apps/details?id=com.twitter.android)
+</details>
+
 ## 📜 Resources & Credits
 - [`Resources: anddea's wiki`](https://github.com/anddea/revanced-patches/wiki)
 - [`Resources: RVX Community Guides`](https://github.com/ReVanced-Extended-Community/Community-Guides)
