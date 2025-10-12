@@ -3,12 +3,11 @@ set -euo pipefail
 shopt -s nullglob
 trap "rm -rf temp/*tmp.* temp/*/*tmp.* temp/*-temporary-files; exit 130" INT
 
-if [ "${1-}" = "clean" ]; then
+if [[ "${1-}" = "clean" ]]; then
   rm -rf temp build logs build.md
   exit 0
 fi
 
-: REMOVE_RV_INTEGRATIONS_CHECKS=true
 source utils.sh
 set_prebuilts
 
@@ -19,7 +18,7 @@ toml_prep "${1:-config.toml}" || abort "could not find config file '${1:-config.
 main_config_t=$(toml_get_table_main)
 COMPRESSION_LEVEL=$(toml_get "$main_config_t" compression-level) || COMPRESSION_LEVEL="9"
 if ! PARALLEL_JOBS=$(toml_get "$main_config_t" parallel-jobs); then
-  if [ "$OS" = Android ]; then PARALLEL_JOBS=1; else PARALLEL_JOBS=$(nproc); fi
+  if [[ "$OS" = Android ]]; then PARALLEL_JOBS=1; else PARALLEL_JOBS=$(nproc); fi
 fi
 REMOVE_RV_INTEGRATIONS_CHECKS=$(toml_get "$main_config_t" remove-rv-integrations-checks) || REMOVE_RV_INTEGRATIONS_CHECKS="true"
 DEF_PATCHES_VER=$(toml_get "$main_config_t" patches-version) || DEF_PATCHES_VER="dev"
@@ -29,7 +28,7 @@ DEF_CLI_SRC=$(toml_get "$main_config_t" cli-source) || DEF_CLI_SRC="inotia00/rev
 DEF_RV_BRAND=$(toml_get "$main_config_t" rv-brand) || DEF_RV_BRAND="RVX App"
 mkdir -p "$TEMP_DIR" "$BUILD_DIR"
 
-if [ "${2-}" = "--config-update" ]; then
+if [[ "${2-}" = "--config-update" ]]; then
   config_update
   exit 0
 fi
@@ -41,19 +40,28 @@ jq --version >/dev/null || abort "\`jq\` is not installed. install it with 'apt 
 java --version >/dev/null || abort "\`openjdk\` is not installed. install it with 'apt install openjdk-17-jre' or equivalent"
 zip --version >/dev/null || abort "\`zip\` is not installed. install it with 'apt install zip' or equivalent"
 
-# clear per-run changelog buffers
-if [ "$(echo "$TEMP_DIR"/*-rv/changelog.md)" ]; then
+# Verify dependencies for optimization if enabled
+optimize_apk=$(toml_get "$main_config_t" optimize-apk) || optimize_apk=false
+zipalign=$(toml_get "$main_config_t" zipalign) || zipalign=false
+
+# Clear per-run changelog buffers
+if [[ "$(echo "$TEMP_DIR"/*-rv/changelog.md)" ]]; then
   : >"$TEMP_DIR"/*-rv/changelog.md || :
 fi
 
 declare -A cliriplib
 idx=0
 for table_name in $(toml_get_table_names); do
-  if [ -z "$table_name" ]; then continue; fi
+  # Skip PatchSources section
+  if [[ "$table_name" == "PatchSources" ]]; then
+    continue
+  fi
+  
+  if [[ -z "$table_name" ]]; then continue; fi
   t=$(toml_get_table "$table_name")
   enabled=$(toml_get "$t" enabled) || enabled=true
   vtf "$enabled" "enabled"
-  if [ "$enabled" = false ]; then continue; fi
+  if [[ "$enabled" = false ]]; then continue; fi
   if ((idx >= PARALLEL_JOBS)); then
     wait -n
     idx=$((idx - 1))
@@ -80,13 +88,13 @@ for table_name in $(toml_get_table_names); do
       app_args[riplib]=false
     fi
   fi
-  if [ "${app_args[riplib]}" = "true" ] && [ "$(toml_get "$t" riplib)" = "false" ]; then app_args[riplib]=false; fi
+  if [[ "${app_args[riplib]}" = "true" && "$(toml_get "$t" riplib)" = "false" ]]; then app_args[riplib]=false; fi
   app_args[rv_brand]=$(toml_get "$t" rv-brand) || app_args[rv_brand]=$DEF_RV_BRAND
 
   app_args[excluded_patches]=$(toml_get "$t" excluded-patches) || app_args[excluded_patches]=""
-  if [ -n "${app_args[excluded_patches]}" ] && [[ ${app_args[excluded_patches]} != *'"'* ]]; then abort "patch names inside excluded-patches must be quoted"; fi
+  if [[ -n "${app_args[excluded_patches]}" && ${app_args[excluded_patches]} != *'"'* ]]; then abort "patch names inside excluded-patches must be quoted"; fi
   app_args[included_patches]=$(toml_get "$t" included-patches) || app_args[included_patches]=""
-  if [ -n "${app_args[included_patches]}" ] && [[ ${app_args[included_patches]} != *'"'* ]]; then abort "patch names inside included-patches must be quoted"; fi
+  if [[ -n "${app_args[included_patches]}" && ${app_args[included_patches]} != *'"'* ]]; then abort "patch names inside included-patches must be quoted"; fi
   app_args[exclusive_patches]=$(toml_get "$t" exclusive-patches) && vtf "${app_args[exclusive_patches]}" "exclusive-patches" || app_args[exclusive_patches]=false
   app_args[version]=$(toml_get "$t" version) || app_args[version]="auto"
   app_args[app_name]=$(toml_get "$t" app-name) || app_args[app_name]=$table_name
@@ -108,14 +116,14 @@ for table_name in $(toml_get_table_names); do
     app_args[archive_dlurl]=${app_args[archive_dlurl]%/}
     app_args[dl_from]=archive
   } || app_args[archive_dlurl]=""
-  if [ -z "${app_args[dl_from]-}" ]; then abort "ERROR: no 'apkmirror_dlurl', 'uptodown_dlurl' or 'archive_dlurl' option was set for '$table_name'."; fi
+  if [[ -z "${app_args[dl_from]-}" ]]; then abort "ERROR: no 'apkmirror_dlurl', 'uptodown_dlurl' or 'archive_dlurl' option was set for '$table_name'."; fi
 
   app_args[arch]=$(toml_get "$t" arch) || app_args[arch]="all"
-  if [ "${app_args[arch]}" != "both" ] && [ "${app_args[arch]}" != "all" ] && [[ ${app_args[arch]} != "arm64-v8a"* ]] && [[ ${app_args[arch]} != "arm-v7a"* ]]; then
+  if [[ "${app_args[arch]}" != "both" && "${app_args[arch]}" != "all" && ${app_args[arch]} != "arm64-v8a"* && ${app_args[arch]} != "arm-v7a"* ]]; then
     abort "wrong arch '${app_args[arch]}' for '$table_name'"
   fi
 
-  if [ "${app_args[arch]}" = both ]; then
+  if [[ "${app_args[arch]}" = both ]]; then
     app_args[table]="$table_name (arm64-v8a)"
     app_args[arch]="arm64-v8a"
     idx=$((idx + 1))
@@ -135,13 +143,13 @@ for table_name in $(toml_get_table_names); do
 done
 wait
 rm -rf temp/tmp.*
-if [ -z "$(ls -A1 "${BUILD_DIR}")" ]; then abort "All builds failed."; fi
+if [[ -z "$(ls -A1 "${BUILD_DIR}")" ]]; then abort "All builds failed."; fi
 
 log "\n- ▶️ » Install [MicroG-RE](https://github.com/WSTxda/MicroG-RE/releases) for non-root YouTube and YT Music APKs\n"
 log "$(cat "$TEMP_DIR"/*-rv/changelog.md)"
 
 SKIPPED=$(cat "$TEMP_DIR"/skipped 2>/dev/null || :)
-if [ -n "$SKIPPED" ]; then
+if [[ -n "$SKIPPED" ]]; then
   log "\nSkipped:"
   log "$SKIPPED"
 fi
