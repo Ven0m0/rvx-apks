@@ -1,5 +1,6 @@
+# ---- Global Settings ----
 enable-magisk-update = false
-parallel-jobs = 1
+parallel-jobs = 4
 compression-level = 9
 remove-rv-integrations-checks = true
 rebuild-all-on-update = false
@@ -7,13 +8,37 @@ riplib = true
 build-mode = "apk"
 arch = "arm64-v8a"
 
-patches-source = "anddea/revanced-patches"
-cli-source = "inotia00/revanced-cli"
+# JVM optimization flags for faster builds
+jvm-flags = "-XX:+UseParallelGC -XX:+UseStringDeduplication -Xmx2G"
+
+# Global optimization settings (can be overridden per app)
+optimize-apk = true     # Enable APK optimization with AAPT2
+optimize-languages = "en"    # Keep only English resources for smaller APKs
+optimize-densities = "nodpi,anydpi,xxhdpi"  # Keep only these screen densities
+zipalign = true    # Apply zipalign for better runtime performance
+cache-apk = true   # Cache downloaded APKs to avoid redownloading
+
 patches-version = "dev"
 cli-version = "dev"
+patches-source = "anddea/revanced-patches"
+cli-source = "inotia00/revanced-cli"
 
-# TODO: organising
+# ---- Patch Sources Configuration ----
+# Define multiple patch sources that can be combined
+[PatchSources]
+# ReVanced Extended patches
+rvx.source = "anddea/revanced-patches"
+rvx.cli-source = "inotia00/revanced-cli"
+rvx.version = "dev"
+rvx.cli-version = "dev"
 
+# Privacy-focused patches
+privacy.source = "jkennethcarino/privacy-revanced-patches"
+privacy.cli-source = "ReVanced/revanced-cli"
+privacy.version = "latest"
+privacy.cli-version = "latest"
+
+# ---- Apps Configuration ----
 [YouTube]
 enabled = true
 build-mode = "apk"
@@ -22,17 +47,19 @@ arch = "arm64-v8a"
 #riplib = true
 uptodown-dlurl = "https://youtube.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube"
-#archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.youtube"
+
+# Use patches from both sources
+patch-sources = ["rvx", "privacy"]
 included-patches = "'Change version code' 'Custom branding icon for YouTube' 'Custom branding name for YouTube' 'MaterialYou' 'Theme' 'Custom header for YouTube'"
 excluded-patches = "'Alternative thumbnails' 'Enable gradient loading screen' 'Enable debug logging'"
 patcher-args = "-e 'Custom branding icon for YouTube' -OappIcon='revancify_red' -OdarkThemeBackgroundColor=@android:color/black -OlightThemeBackgroundColor=@android:color/white -OstrokeColor=?attr/ytChipBackground -e 'Visual preferences icons for YouTube' -OsettingsMenuIcon=revanced"
-#patcher-args = "--legacy-options=options.json"
-patches-source = "anddea/revanced-patches"
-cli-source = "inotia00/revanced-cli"
 rv-brand = "RVX"
-# Todo:
-# dpi = "480dpi"
-# experimental, highhly depends on release. Probably not usable
+
+# App-specific optimization settings
+optimize-apk = true
+optimize-languages = "en"
+optimize-densities = "nodpi,xxhdpi,xxxhdpi"
+cache-apk = true
 
 [Music]
 enabled = true
@@ -46,10 +73,13 @@ archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.a
 included-patches = "'Change version code' 'Custom branding icon for YouTube Music' 'Custom branding name for YouTube Music' 'Disable music video in album'"
 excluded-patches = "'Enable debug logging'"
 patcher-args = "-e 'Custom branding icon for YouTube Music' -OappIcon='revancify_red' -e 'Visual preferences icons for YouTube Music' -OsettingsMenuIcon=revanced"
-#patcher-args = "--legacy-options=options.json"
 patches-source = "anddea/revanced-patches"
 cli-source = "inotia00/revanced-cli"
 rv-brand = "RVX"
+
+# Using standard source but with optimization
+optimize-apk = true
+optimize-languages = "en"
 
 [Reddit]
 enabled = false
@@ -66,6 +96,15 @@ apkmirror-dlurl = "https://apkmirror.com/apk/redditinc/reddit"
 patches-source = "anddea/revanced-patches"
 cli-source = "inotia00/revanced-cli"
 rv-brand = "RVX"
+
+[X]
+enabled = false
+uptodown-dlurl = "https://twitter.en.uptodown.com/android"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
+patches-source = "crimera/piko"
+rv-brand = "Piko"
+included-patches = "'Change version code'"
+dpi = "120-640dpi"
 
 [Spotify]
 enabled = false
@@ -89,18 +128,3 @@ uptodown-dlurl = "https://tiktok.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/tiktok-pte-ltd/tik-tok-including-musical-ly"
 arch = "arm64-v8a"
 build-mode = "apk"
-
-[X]
-enabled = false
-uptodown-dlurl = "https://twitter.en.uptodown.com/android"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
-patches-source = "crimera/piko"
-rv-brand = "Piko"
-included-patches = "'Change version code'"
-dpi = "120-640dpi"
-
-#[General]
-#enabled = false
-#patches-source = "jkennethcarino/privacy-revanced-patches"
-#cli-source = "ReVanced/revanced-cli"
-#rv-brand = "jkennethcarino"
