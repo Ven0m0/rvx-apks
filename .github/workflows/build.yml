@@ -1,7 +1,8 @@
 name: Build Modules
 on:
   workflow_dispatch:
-
+  schedule: [{cron: "0 0 * * 1,4"}]
+  
 jobs:
   run:
     permissions: write-all
