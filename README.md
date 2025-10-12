@@ -5,10 +5,10 @@
 </h1>
 
 <p align="center">
-    <a loading="lazy" decoding="async" href="https://github.com/krvstek/Ven0m0/actions/workflows//build.yml"><img alt="Build Status" src="https://github.com/Ven0m0/rvx-apks/actions/workflows/build.yml/badge.svg"></a>
-    <a loading="lazy" decoding="async" href="https://github.com/krvstek/Ven0m0/releases/latest"><img alt="Click here!" src="https://img.shields.io/github/release-date/Ven0m0/rvx-apks?display_date=created_at&logo=android&label=Latest%20Release"></a>
-    <img loading="lazy" decoding="async" alt="Downloads (Overall)" src="https://img.shields.io/github/downloads/Ven0m0/rvx-apks/total?logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Overall)">
-    <img loading="lazy" decoding="async" alt="Downloads (Latest)" src="https://img.shields.io/github/downloads/Ven0m0/rvx-apks/latest/total?sort=semver&logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Latest)">
+    <img alt="Build Status" src="https://img.shields.io/github/actions/workflow/status/Ven0m0/rvx-apks/build.yml?style=flat-square&logo=githubactions&logoColor=%23FFFFFF&label=Build%20Status&color=%234500FF">
+    <img alt="Latest Release" src="https://img.shields.io/github/release-date/Ven0m0/rvx-apks?display_date=created_at&style=flat-square&logo=android&logoColor=%23FFFFFF&label=Latest%20Release&color=%234500FF">
+    <img alt="Downloads (Overall)" src="https://img.shields.io/github/downloads/Ven0m0/rvx-apks/total?style=flat-square&logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Overall)&color=%234500FF">
+    <img alt="Downloads (Latest)" src="https://img.shields.io/github/downloads/Ven0m0/rvx-apks/latest/total?sort=semver&style=flat-square&logo=simpleanalytics&logoColor=%23FFFFFF&label=Downloads%20(Latest)&color=%234500FF">
 </p>
 
 ## ⭐ Overview
