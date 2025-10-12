@@ -9,7 +9,7 @@ build-mode = "apk"
 arch = "arm64-v8a"
 
 # JVM optimization flags for faster builds
-jvm-flags = "-XX:+UseParallelGC -XX:+UseStringDeduplication -Xmx2G"
+jvm-flags = "-Dfile.encoding=utf-8 -Djdk.util.zip.disableZip64ExtraFieldValidation=true -Djdk.nio.zipfs.allowDotZipEntry=true -Xmx2G -XX:+UseParallelGC -XX:+UseStringDeduplication"
 
 # Global optimization settings (can be overridden per app)
 optimize-apk = true     # Enable APK optimization with AAPT2
