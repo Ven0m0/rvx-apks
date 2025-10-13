@@ -36,16 +36,17 @@ fi
 : >build.md
 if ((COMPRESSION_LEVEL > 9)) || ((COMPRESSION_LEVEL < 0)); then abort "compression-level must be within 0-9"; fi
 
-jq --version >/dev/null || abort "\`jq\` is not installed. install it with 'apt install jq' or equivalent"
-java --version >/dev/null || abort "\`openjdk\` is not installed. install it with 'apt install openjdk-17-jre' or equivalent"
-zip --version >/dev/null || abort "\`zip\` is not installed. install it with 'apt install zip' or equivalent"
+# Check required tools
+jq --version &>/dev/null || abort "\`jq\` is not installed. install it with 'apt install jq' or equivalent"
+java --version &>/dev/null || abort "\`openjdk\` is not installed. install it with 'apt install openjdk-17-jre' or equivalent"
+zip --version &>/dev/null || abort "\`zip\` is not installed. install it with 'apt install zip' or equivalent"
 
-# Verify dependencies for optimization if enabled
+# Check optimization tools when enabled
 optimize_apk=$(toml_get "$main_config_t" optimize-apk) || optimize_apk=false
 zipalign=$(toml_get "$main_config_t" zipalign) || zipalign=false
 
 # Clear per-run changelog buffers
-if [[ "$(echo "$TEMP_DIR"/*-rv/changelog.md)" ]]; then
+if [[ "$(echo "$TEMP_DIR"/*-rv/changelog.md 2>/dev/null || echo '')" ]]; then
   : >"$TEMP_DIR"/*-rv/changelog.md || :
 fi
 
@@ -146,7 +147,7 @@ rm -rf temp/tmp.*
 if [[ -z "$(ls -A1 "${BUILD_DIR}")" ]]; then abort "All builds failed."; fi
 
 log "\n- ▶️ » Install [MicroG-RE](https://github.com/WSTxda/MicroG-RE/releases) for non-root YouTube and YT Music APKs\n"
-log "$(cat "$TEMP_DIR"/*-rv/changelog.md)"
+log "$(cat "$TEMP_DIR"/*-rv/changelog.md 2>/dev/null || echo '')"
 
 SKIPPED=$(cat "$TEMP_DIR"/skipped 2>/dev/null || :)
 if [[ -n "$SKIPPED" ]]; then
