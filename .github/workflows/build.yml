@@ -2,34 +2,33 @@ name: Build APKs
 on:
   workflow_dispatch:
   schedule: [{cron: "0 0 * * 0"}]
-  
+
 jobs:
-  run:
+  build:
     permissions: write-all
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-java@v5
+      - name: Set up Java
+        uses: actions/setup-java@v5
         with:
           distribution: "temurin"
           java-version: "21"
 
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
           submodules: true
 
-      - name: Update config
+      - name: Update configuration
         if: ${{ inputs.from_ci }}
         run: |
-          if git checkout origin/update build.md; then
+          if git checkout origin/update build.md 2>/dev/null; then
             UPDATE_CFG=$(./build.sh config.toml --config-update)
-            if [ "$UPDATE_CFG" ]; then
-              echo "$UPDATE_CFG" > config.json
-            fi
+            [[ -n "$UPDATE_CFG" ]] && echo "$UPDATE_CFG" > config.json
           fi
 
-      - name: Cache downloaded tools and intermediate build files
+      - name: Cache build artifacts
         uses: actions/cache@v4
         id: build_cache
         with:
@@ -49,27 +48,26 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG=$(gh release list -L 1 | awk -F '\t' '{print $3}')
-          if [ -z "$TAG" ]; then TAG=0; fi
+          [[ -z "$TAG" ]] && TAG=0
           echo "NEXT_VER_CODE=$((TAG + 1))" >> $GITHUB_OUTPUT
 
       - name: Build APKs
         continue-on-error: true
         run: |
-          chmod +x build.sh
-          chmod +x utils.sh
+          chmod +x build.sh utils.sh
           ./build.sh config.toml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: $GITHUB_REPOSITORY
           NEXT_VER_CODE: ${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}
 
-      - name: Upload Artifacts
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
           path: ./build/
 
-      - name: Get output
+      - name: Prepare release info
         id: get_output
         run: |
           echo "DATE=$(date +%y.%m.%d)" >> "$GITHUB_OUTPUT"
@@ -79,7 +77,7 @@ jobs:
           echo "${DELIM}" >> "$GITHUB_OUTPUT"
           cp -f build.md build.tmp
 
-      - name: Upload build to release
+      - name: Create release
         uses: svenstaro/upload-release-action@v2
         with:
           body: ${{ steps.get_output.outputs.BUILD_LOG }}
@@ -90,12 +88,13 @@ jobs:
           file_glob: true
           overwrite: true
 
-      - name: Update changelog branch
+      - name: Update changelog
         run: |
-          git checkout -f update || git switch --discard-changes --orphan update
+          git checkout -f update 2>/dev/null || git switch --discard-changes --orphan update
           cp -f build.tmp build.md
 
-      - uses: stefanzweifel/git-auto-commit-action@v6
+      - name: Commit changelog
+        uses: stefanzweifel/git-auto-commit-action@v6
         with:
           branch: update
           file_pattern: build.md
