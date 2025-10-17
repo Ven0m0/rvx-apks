@@ -94,7 +94,7 @@ jobs:
           cp -f build.tmp build.md
 
       - name: Commit changelog
-        uses: stefanzweifel/git-auto-commit-action@v6
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           branch: update
           file_pattern: build.md
