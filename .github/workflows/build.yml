@@ -21,7 +21,7 @@ jobs:
           submodules: true
 
       - name: Update configuration
-        if: ${{ inputs.from_ci }}
+        if: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           if git checkout origin/update build.md 2>/dev/null; then
             UPDATE_CFG=$(./build.sh config.toml --config-update)
