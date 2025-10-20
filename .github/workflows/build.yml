@@ -34,6 +34,7 @@ jobs:
         with:
           path: |
             temp
+            bin/patchcache
             bin/apksigner.jar
             bin/aapt2/aapt2-arm64
             bin/toml/tq-arm64
