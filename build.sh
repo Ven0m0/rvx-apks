@@ -9,7 +9,8 @@ if [[ "${1-}" = "clean" ]]; then
 fi
 
 source utils.sh
-set_prebuilts
+# Guarded to avoid hard-fail in early CI steps if utils is partial
+declare -F set_prebuilts &>/dev/null && set_prebuilts
 
 vtf() {
   if ! isoneof "${1}" "true" "false"; then
@@ -49,11 +50,11 @@ if ((COMPRESSION_LEVEL > 9)) || ((COMPRESSION_LEVEL < 0)); then
 fi
 
 # Check required tools
-command -v jq     &>/dev/null || abort "`jq` is not installed. Install it with 'apt install jq' or equivalent"
-command -v java   &>/dev/null || abort "`openjdk` is not installed. Install it with 'apt install openjdk-17-jre' or equivalent"
-command -v zip    &>/dev/null || abort "`zip` is not installed. Install it with 'apt install zip' or equivalent"
+command -v jq   &>/dev/null || abort "`jq` is not installed. Install it with 'apt install jq' or equivalent"
+command -v java &>/dev/null || abort "`openjdk` is not installed. Install it with 'apt install openjdk-17-jre' or equivalent"
+command -v zip  &>/dev/null || abort "`zip` is not installed. Install it with 'apt install zip' or equivalent"
 
-# Check optimization tools when enabled (values used by utils)
+# Check optimization tools when enabled
 optimize_apk=$(toml_get "$main_config_t" optimize-apk) || optimize_apk=false
 zipalign=$(toml_get "$main_config_t" zipalign) || zipalign=false
 
@@ -62,7 +63,6 @@ find "$TEMP_DIR" -name "changelog.md" -type f -exec : '>' {} \; 2>/dev/null || :
 
 idx=0
 for table_name in $(toml_get_table_names); do
-  # Skip PatchSources section
   [[ "$table_name" == "PatchSources" ]] && continue
   [[ -z "$table_name" ]] && continue
 
@@ -77,7 +77,6 @@ for table_name in $(toml_get_table_names); do
   fi
 
   declare -A app_args
-  # Table-specific args
   app_args[rv_brand]=$(toml_get "$t" rv-brand) || app_args[rv_brand]=$DEF_RV_BRAND
   app_args[excluded_patches]=$(toml_get "$t" excluded-patches) || app_args[excluded_patches]=""
   app_args[included_patches]=$(toml_get "$t" included-patches) || app_args[included_patches]=""
@@ -88,11 +87,9 @@ for table_name in $(toml_get_table_names); do
   app_args[table]=$table_name
   app_args[dpi]=$(toml_get "$t" dpi) || app_args[dpi]="nodpi"
 
-  # Validate patch names format
   [[ -n "${app_args[excluded_patches]}" && ${app_args[excluded_patches]} != *'"'* ]] && abort "Patch names inside excluded-patches must be quoted"
   [[ -n "${app_args[included_patches]}" && ${app_args[included_patches]} != *'"'* ]] && abort "Patch names inside included-patches must be quoted"
 
-  # Set download sources
   app_args[uptodown_dlurl]=$(toml_get "$t" uptodown-dlurl) && {
     app_args[uptodown_dlurl]=${app_args[uptodown_dlurl]%/}
     app_args[uptodown_dlurl]=${app_args[uptodown_dlurl]%download}
@@ -112,17 +109,11 @@ for table_name in $(toml_get_table_names); do
 
   [[ -z "${app_args[dl_from]-}" ]] && abort "ERROR: No 'apkmirror_dlurl', 'uptodown_dlurl' or 'archive_dlurl' option was set for '$table_name'."
 
-  # Process architecture settings
   app_args[arch]=$(toml_get "$t" arch) || app_args[arch]="all"
   if [[ "${app_args[arch]}" != "both" && "${app_args[arch]}" != "all" && ${app_args[arch]} != "arm64-v8a"* && ${app_args[arch]} != "arm-v7a"* ]]; then
     abort "Wrong arch '${app_args[arch]}' for '$table_name'"
   fi
 
-  # NOTE: We do NOT pre-download CLI/patch jars here anymore.
-  # utils.sh resolves (and caches) the correct CLI/patch jars per app,
-  # including multi-source combination with privacy-last ordering and riplib detection.
-
-  # Handle both architectures if needed
   if [[ "${app_args[arch]}" = both ]]; then
     app_args[table]="$table_name (arm64-v8a)"
     app_args[arch]="arm64-v8a"
@@ -140,18 +131,13 @@ for table_name in $(toml_get_table_names); do
   fi
 done
 
-# Wait for all background jobs to complete
 wait
-
-# Clean up temporary files
 rm -rf temp/tmp.*
 
-# Check for build success (fast check)
 if ! find "${BUILD_DIR}" -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
   abort "All builds failed."
 fi
 
-# Generate final output
 log "\n- ▶️ » Install [MicroG-RE](https://github.com/WSTxda/MicroG-RE/releases) for non-root YouTube and YT Music APKs\n"
 log "$(cat "$TEMP_DIR"/*-rv/changelog.md 2>/dev/null || echo '')"
 
