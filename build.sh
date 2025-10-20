@@ -22,7 +22,7 @@ toml_prep "${1:-config.toml}" || abort "Could not find config file '${1:-config.
 main_config_t=$(toml_get_table_main)
 COMPRESSION_LEVEL=$(toml_get "$main_config_t" compression-level) || COMPRESSION_LEVEL="9"
 if ! PARALLEL_JOBS=$(toml_get "$main_config_t" parallel-jobs); then
-  if [[ "$OS" = Android ]]; then PARALLEL_JOBS=1; else PARALLEL_JOBS=$(nproc); fi
+  if [[ "${OS:-}" = Android ]]; then PARALLEL_JOBS=1; else PARALLEL_JOBS=$(nproc); fi
 fi
 REMOVE_RV_INTEGRATIONS_CHECKS=$(toml_get "$main_config_t" remove-rv-integrations-checks) || REMOVE_RV_INTEGRATIONS_CHECKS="true"
 DEF_PATCHES_VER=$(toml_get "$main_config_t" patches-version) || DEF_PATCHES_VER="dev"
@@ -49,18 +49,17 @@ if ((COMPRESSION_LEVEL > 9)) || ((COMPRESSION_LEVEL < 0)); then
 fi
 
 # Check required tools
-command -v jq >/dev/null 2>&1 || abort "\`jq\` is not installed. Install it with 'apt install jq' or equivalent"
-command -v java >/dev/null 2>&1 || abort "\`openjdk\` is not installed. Install it with 'apt install openjdk-17-jre' or equivalent"
-command -v zip >/dev/null 2>&1 || abort "\`zip\` is not installed. Install it with 'apt install zip' or equivalent"
+command -v jq     &>/dev/null || abort "`jq` is not installed. Install it with 'apt install jq' or equivalent"
+command -v java   &>/dev/null || abort "`openjdk` is not installed. Install it with 'apt install openjdk-17-jre' or equivalent"
+command -v zip    &>/dev/null || abort "`zip` is not installed. Install it with 'apt install zip' or equivalent"
 
-# Check optimization tools when enabled
+# Check optimization tools when enabled (values used by utils)
 optimize_apk=$(toml_get "$main_config_t" optimize-apk) || optimize_apk=false
 zipalign=$(toml_get "$main_config_t" zipalign) || zipalign=false
 
 # Clear per-run changelog buffers
 find "$TEMP_DIR" -name "changelog.md" -type f -exec : '>' {} \; 2>/dev/null || :
 
-declare -A cliriplib
 idx=0
 for table_name in $(toml_get_table_names); do
   # Skip PatchSources section
@@ -78,36 +77,7 @@ for table_name in $(toml_get_table_names); do
   fi
 
   declare -A app_args
-  patches_src=$(toml_get "$t" patches-source) || patches_src=$DEF_PATCHES_SRC
-  patches_ver=$(toml_get "$t" patches-version) || patches_ver=$DEF_PATCHES_VER
-  cli_src=$(toml_get "$t" cli-source) || cli_src=$DEF_CLI_SRC
-  cli_ver=$(toml_get "$t" cli-version) || cli_ver=$DEF_CLI_VER
-
-  if ! RVP="$(get_rv_prebuilts "$cli_src" "$cli_ver" "$patches_src" "$patches_ver")"; then
-    abort "Could not download ReVanced prebuilts"
-  fi
-  read -r rv_cli_jar rv_patches_jar <<<"$RVP"
-
-  app_args[cli]=$rv_cli_jar
-  app_args[ptjar]=$rv_patches_jar
-
-  # Determine riplib support once per CLI version
-  if [[ -v cliriplib[${app_args[cli]}] ]]; then
-    app_args[riplib]=${cliriplib[${app_args[cli]}]}
-  else
-    if java -jar "${app_args[cli]}" patch 2>&1 | grep -q "rip-lib"; then
-      cliriplib[${app_args[cli]}]=true
-      app_args[riplib]=true
-    else
-      cliriplib[${app_args[cli]}]=false
-      app_args[riplib]=false
-    fi
-  fi
-
-  # Handle explicit riplib setting
-  [[ "${app_args[riplib]}" = "true" && "$(toml_get "$t" riplib)" = "false" ]] && app_args[riplib]=false
-
-  # Set remaining app args
+  # Table-specific args
   app_args[rv_brand]=$(toml_get "$t" rv-brand) || app_args[rv_brand]=$DEF_RV_BRAND
   app_args[excluded_patches]=$(toml_get "$t" excluded-patches) || app_args[excluded_patches]=""
   app_args[included_patches]=$(toml_get "$t" included-patches) || app_args[included_patches]=""
@@ -148,12 +118,15 @@ for table_name in $(toml_get_table_names); do
     abort "Wrong arch '${app_args[arch]}' for '$table_name'"
   fi
 
+  # NOTE: We do NOT pre-download CLI/patch jars here anymore.
+  # utils.sh resolves (and caches) the correct CLI/patch jars per app,
+  # including multi-source combination with privacy-last ordering and riplib detection.
+
   # Handle both architectures if needed
   if [[ "${app_args[arch]}" = both ]]; then
     app_args[table]="$table_name (arm64-v8a)"
     app_args[arch]="arm64-v8a"
-    idx=$((idx + 1))
-    build_rv "$(declare -p app_args)" &
+    idx=$((idx + 1)); build_rv "$(declare -p app_args)" &
 
     app_args[table]="$table_name (arm-v7a)"
     app_args[arch]="arm-v7a"
@@ -161,11 +134,9 @@ for table_name in $(toml_get_table_names); do
       wait -n
       idx=$((idx - 1))
     fi
-    idx=$((idx + 1))
-    build_rv "$(declare -p app_args)" &
+    idx=$((idx + 1)); build_rv "$(declare -p app_args)" &
   else
-    idx=$((idx + 1))
-    build_rv "$(declare -p app_args)" &
+    idx=$((idx + 1)); build_rv "$(declare -p app_args)" &
   fi
 done
 
@@ -175,8 +146,8 @@ wait
 # Clean up temporary files
 rm -rf temp/tmp.*
 
-# Check for build success
-if [[ -z "$(ls -A1 "${BUILD_DIR}")" ]]; then
+# Check for build success (fast check)
+if ! find "${BUILD_DIR}" -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
   abort "All builds failed."
 fi
 
