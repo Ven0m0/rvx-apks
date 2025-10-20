@@ -9,7 +9,6 @@ if [[ "${1-}" = "clean" ]]; then
 fi
 
 source utils.sh
-# Guarded to avoid hard-fail in early CI steps if utils is partial
 declare -F set_prebuilts &>/dev/null && set_prebuilts
 
 vtf() {
@@ -21,6 +20,14 @@ vtf() {
 # -- Main config --
 toml_prep "${1:-config.toml}" || abort "Could not find config file '${1:-config.toml}'\n\tUsage: $0 <config.toml>"
 main_config_t=$(toml_get_table_main)
+
+# JVM flags precedence: config.toml jvm-flags > env JAVA_OPTS > default from utils.sh
+if JF=$(toml_get "$main_config_t" jvm-flags); then
+  export JVM_OPTS="$JF"
+elif [[ -n "${JAVA_OPTS:-}" ]]; then
+  export JVM_OPTS="$JAVA_OPTS"
+fi
+
 COMPRESSION_LEVEL=$(toml_get "$main_config_t" compression-level) || COMPRESSION_LEVEL="9"
 if ! PARALLEL_JOBS=$(toml_get "$main_config_t" parallel-jobs); then
   if [[ "${OS:-}" = Android ]]; then PARALLEL_JOBS=1; else PARALLEL_JOBS=$(nproc); fi
@@ -115,16 +122,10 @@ for table_name in $(toml_get_table_names); do
   fi
 
   if [[ "${app_args[arch]}" = both ]]; then
-    app_args[table]="$table_name (arm64-v8a)"
-    app_args[arch]="arm64-v8a"
+    app_args[table]="$table_name (arm64-v8a)"; app_args[arch]="arm64-v8a"
     idx=$((idx + 1)); build_rv "$(declare -p app_args)" &
-
-    app_args[table]="$table_name (arm-v7a)"
-    app_args[arch]="arm-v7a"
-    if ((idx >= PARALLEL_JOBS)); then
-      wait -n
-      idx=$((idx - 1))
-    fi
+    app_args[table]="$table_name (arm-v7a)"; app_args[arch]="arm-v7a"
+    if ((idx >= PARALLEL_JOBS)); then wait -n; idx=$((idx - 1)); fi
     idx=$((idx + 1)); build_rv "$(declare -p app_args)" &
   else
     idx=$((idx + 1)); build_rv "$(declare -p app_args)" &
