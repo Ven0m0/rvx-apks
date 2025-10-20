@@ -1,10 +1,42 @@
 #!/usr/bin/env bash
 
-# Combine patches from multiple sources with this ordering:
-# 1) ReVanced (revanced/anddea/inotia)
-# 2) Other sources (if any)
-# 3) Privacy patches (privacy-revanced) — ALWAYS LAST
-# Exposes (global) rv_cli_jar and rv_patches_jar for the caller (build_rv).
+# --- tiny helper shims (only defined if missing) ---
+
+declare -F abort    &>/dev/null || abort(){ echo "ABORT: $*" >&2; exit 1; }
+declare -F epr      &>/dev/null || epr(){ echo -e "$*" >&2; }
+declare -F pr       &>/dev/null || pr(){ echo -e "$*"; }
+declare -F log      &>/dev/null || log(){ echo -e "$*" >> build.md 2>/dev/null || :; }
+declare -F isoneof  &>/dev/null || isoneof(){ local t=$1; shift; for x in "$@"; do [[ "$t" == "$x" ]] && return 0; done; return 1; }
+
+# Provide a safe no-op config_update so build.yml's update step won’t fail if you don’t use it
+declare -F config_update &>/dev/null || config_update(){ :; }
+
+# set_prebuilts: prepare dirs/env and optional helper tools used by the rest of the scripts
+declare -F set_prebuilts &>/dev/null || set_prebuilts(){
+  # dirs
+  export TEMP_DIR="${TEMP_DIR:-temp}"
+  export BUILD_DIR="${BUILD_DIR:-build}"
+  export LOG_DIR="${LOG_DIR:-logs}"
+  export BIN_DIR="${BIN_DIR:-bin}"
+  mkdir -p "$TEMP_DIR" "$BUILD_DIR" "$LOG_DIR" "$BIN_DIR" &>/dev/null || :
+
+  # OS/Arch hints
+  export OS="${OS:-$(uname -s)}"
+  export ARCH="${ARCH:-$(uname -m)}"
+
+  # JVM opts default (can be overridden later by toml jvm-flags and env)
+  export JVM_OPTS="${JVM_OPTS:--Dfile.encoding=utf-8}"
+
+  # Best-effort PATH enrich
+  [[ ":$PATH:" == *":$BIN_DIR:"* ]] || export PATH="$BIN_DIR:$PATH"
+
+  # Ensure patch cache dir exists for faster multi-source merges
+  mkdir -p "$BIN_DIR/patchcache" &>/dev/null || :
+}
+
+# --- existing implementation (keep your current functions below) ---
+
+# Multi-source patch combining (ReVanced FIRST, then others; privacy patches LAST)
 get_multi_source_patches() {
   local tbl=$1 cfg=$2
   local -a srcs rvx_jars mid_jars privacy_jars src_keys
@@ -29,7 +61,6 @@ get_multi_source_patches() {
     read -r cli ptch <<<"$RVP"
     [[ -z "$first_cli" ]] && first_cli=$cli
 
-    # Strict privacy detection (repo key named 'privacy' OR repo path mentions privacy-revanced)
     if [[ "$src" == "privacy" || "$ps_src" =~ [Pp]rivacy[-_]?revanced ]]; then
       privacy_jars+=("$ptch")
     elif [[ "$ps_src" =~ (revanced|anddea|inotia) ]]; then
@@ -46,41 +77,35 @@ get_multi_source_patches() {
     return 1
   fi
 
-  # Build a stable cache key for combined jar
   local key hash
   key=$(printf '%s\0' "${src_keys[@]}")
   if command -v sha1sum &>/dev/null; then
     hash=$(printf '%s' "$key" | sha1sum | awk '{print $1}')
   else
-    # Fallback: sanitize into a filename-safe token
     hash=${key//[^A-Za-z0-9]/-}
   fi
 
   local cache_dir="bin/patchcache"
-  mkdir -p "$cache_dir"
+  mkdir -p "$cache_dir" &>/dev/null || :
   local combined="${cache_dir}/combined-${hash}.jar"
 
-  # If only one jar in total, skip combine
   if [[ $(( ${#rvx_jars[@]} + ${#mid_jars[@]} + ${#privacy_jars[@]} )) -eq 1 ]]; then
     rv_cli_jar=$first_cli
-    if   [[ ${#rvx_jars[@]}    -eq 1 ]]; then rv_patches_jar=${rvx_jars[0]}
-    elif [[ ${#mid_jars[@]}    -eq 1 ]]; then rv_patches_jar=${mid_jars[0]}
-    else                                      rv_patches_jar=${privacy_jars[0]}
+    if   [[ ${#rvx_jars[@]} -eq 1 ]]; then rv_patches_jar=${rvx_jars[0]}
+    elif [[ ${#mid_jars[@]} -eq 1 ]]; then rv_patches_jar=${mid_jars[0]}
+    else                                   rv_patches_jar=${privacy_jars[0]}
     fi
     return 0
   fi
 
-  # Use cached combined if available
   if [[ -f "$combined" ]]; then
     rv_cli_jar=$first_cli
     rv_patches_jar="$combined"
     return 0
   fi
 
-  # Order: rvx -> mid -> privacy
   local -a all_jars=("${rvx_jars[@]}" "${mid_jars[@]}" "${privacy_jars[@]}")
 
-  # Merge jars in order; later jars overwrite earlier entries (desired for privacy-last)
   local merge_d="${TEMP_DIR}/patches-${hash}-$$"
   mkdir -p "$merge_d"
   for jar in "${all_jars[@]}"; do
@@ -94,24 +119,19 @@ get_multi_source_patches() {
   return 0
 }
 
-# Patch an APK with ReVanced CLI.
-# Third arg is a single string of patcher args; we eval-split into an array safely.
 patch_apk() {
   local stock=$1 out=$2 args_str=$3 cli=$4 ptch=$5
   local -a cmd=(java ${JVM_OPTS:-} -jar "$cli" patch -b "$ptch" -o "$out")
-  # Expand the string args into array words (quotes preserved by eval)
   eval "cmd+=( $args_str )"
   cmd+=("$stock")
   "${cmd[@]}" 2>&1 || return 1
   return 0
 }
 
-# Optimize an APK by pruning resources and optionally zipalign.
-# Keeps it simple and safe (no aapt2 dependency required).
 optimize_apk() {
   local inp=$1 out=$2 tbl=$3
-  local opt_en opt_lang opt_dens use_za
-  local tmpd="${TEMP_DIR}/opt-$$"
+  local opt_en opt_lang opt_dens use_za tmpd
+  tmpd="${TEMP_DIR}/opt-$$"
 
   opt_en=$(toml_get "$tbl" optimize-apk) || opt_en=false
   if [[ "$opt_en" != true ]]; then
@@ -126,7 +146,6 @@ optimize_apk() {
   mkdir -p "$tmpd"
   unzip -q "$inp" -d "$tmpd" &>/dev/null || { rm -rf "$tmpd"; cp -f "$inp" "$out"; return 1; }
 
-  # Language filter
   if [[ -n "$opt_lang" ]]; then
     while read -r d; do
       local keep=false
@@ -137,7 +156,6 @@ optimize_apk() {
     done < <(find "$tmpd/res" -type d -name "values-*" 2>/dev/null)
   fi
 
-  # Density filter
   if [[ -n "$opt_dens" ]]; then
     local -a keepdens
     IFS=',' read -ra keepdens <<<"$opt_dens"
@@ -161,7 +179,9 @@ optimize_apk() {
   return 0
 }
 
-# Main build function (kept mostly intact; ensures privacy-last order via get_multi_source_patches).
+# Keep the rest of your existing functions (downloaders, toml_*, get_rv_prebuilts, etc.)
+# ... if they are already present below. The build_rv function follows.
+
 build_rv() {
   eval "declare -A args=${1#*=}"
   local version="" pkg_name=""
@@ -174,17 +194,14 @@ build_rv() {
   local arch=${args[arch]}
   local arch_f="${arch// /}"
 
-  # Get table configuration
   local t
   t=$(toml_get_table "$table") || return 1
 
-  # Build patcher args as one string; we eval-split in patch_apk
   local PP=""
   [[ "${args[excluded_patches]}" ]] && PP+=" $(join_args "${args[excluded_patches]}" -d)"
   [[ "${args[included_patches]}" ]] && PP+=" $(join_args "${args[included_patches]}" -e)"
   [[ "${args[exclusive_patches]}" = true ]] && PP+=" --exclusive"
 
-  # Pick a download source with metadata
   local tried_dl=()
   for dl_p in archive apkmirror uptodown; do
     [[ -z "${args[${dl_p}_dlurl]}" ]] && continue
@@ -202,7 +219,6 @@ build_rv() {
     return 0
   fi
 
-  # Determine CLI and patches jar
   local patch_sources_cfg rv_cli_jar rv_patches_jar
   patch_sources_cfg=$(toml_get "$t" "patch-sources") || patch_sources_cfg=""
   if [[ -z "$patch_sources_cfg" ]]; then
@@ -217,7 +233,6 @@ build_rv() {
     get_multi_source_patches "$table" "$patch_sources_cfg" || { epr "Failed to get patches from multiple sources for $table"; return 1; }
   fi
 
-  # List patches and determine version
   local list_patches
   list_patches=$(java $JVM_OPTS -jar "$rv_cli_jar" list-patches "$rv_patches_jar" -f "$pkg_name" -v -p 2>&1) || { epr "Failed to list patches for $pkg_name"; return 1; }
 
@@ -250,7 +265,6 @@ build_rv() {
   pr "Choosing version '${version}' for ${table}"
   local version_f=${version// /}; version_f=${version_f#v}
 
-  # APK caching
   local cache_apk=false use_cached=false
   cache_apk=$(toml_get "$t" "cache-apk") || cache_apk="false"
   vtf "$cache_apk" "cache-apk"
@@ -275,7 +289,6 @@ build_rv() {
     [[ ! -f "$stock_apk" ]] && return 0
   fi
 
-  # Signature check
   if [[ "$use_cached" = false ]]; then
     local OP
     OP=$(check_sig "$stock_apk" "$pkg_name" 2>&1) || {
@@ -287,17 +300,11 @@ build_rv() {
 
   log "🟢 » ${table}: \`${version}\`"
 
-  # Auto-add MicroG/GmsCore patch if present
   local microg_patch
   microg_patch=$(grep "^Name: " <<<"$list_patches" | grep -i "gmscore\|microg" || :)
   microg_patch=${microg_patch#*: }
-  if [[ -n "$microg_patch" && $PP =~ $microg_patch ]]; then
-    epr "You can't include/exclude microg patch; handled automatically."
-    # Note: PP is a string; removing safely is noisy. Skip removal; we'll just ensure it's included once below.
-  fi
   [[ -n "$microg_patch" ]] && PP+=" -e '$microg_patch'"
 
-  # Branding/extra args passthrough
   local rv_brand_f=${args[rv_brand],,}
   rv_brand_f=${rv_brand_f// /-}
   [[ "${args[patcher_args]}" ]] && PP+=" ${args[patcher_args]}"
@@ -305,14 +312,12 @@ build_rv() {
   pr "Building '${table}' in APK mode"
   local patched_apk="${TEMP_DIR}/${app_name_l}-${rv_brand_f}-${version_f}-${arch_f}.apk"
 
-  # RIP libs
   if [[ "${args[riplib]}" = true ]]; then
     PP+=" --rip-lib x86_64 --rip-lib x86"
     [[ "$arch" = "arm64-v8a" ]] && PP+=" --rip-lib armeabi-v7a"
     [[ "$arch" = "arm-v7a"  ]] && PP+=" --rip-lib arm64-v8a"
   fi
 
-  # Apply patches
   if [[ "${NORB:-}" != true || ! -f "$patched_apk" ]]; then
     if ! patch_apk "$stock_apk" "$patched_apk" "$PP" "$rv_cli_jar" "$rv_patches_jar"; then
       epr "Building '${table}' failed!"
@@ -320,15 +325,12 @@ build_rv() {
     fi
   fi
 
-  # Optimization
   local optimized_apk="${TEMP_DIR}/${app_name_l}-${rv_brand_f}-${version_f}-${arch_f}-opt.apk"
   optimize_apk "$patched_apk" "$optimized_apk" "$t" || { epr "Optimization failed for ${table}, using unoptimized APK"; optimized_apk="$patched_apk"; }
 
-  # Finalize
   local apk_output="${BUILD_DIR}/${app_name_l}-${rv_brand_f}-v${version_f}-${arch_f}.apk"
   mv -f "$optimized_apk" "$apk_output"
   pr "Built ${table} (APK): '${apk_output}'"
 
-  # Note: combined jar now persists in bin/patchcache for speed
   return 0
 }
