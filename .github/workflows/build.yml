@@ -20,14 +20,6 @@ jobs:
           fetch-depth: 0
           submodules: true
 
-      - name: Update configuration
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        run: |
-          if git checkout origin/update build.md 2>/dev/null; then
-            UPDATE_CFG=$(./build.sh config.toml --config-update)
-            [[ -n "$UPDATE_CFG" ]] && echo "$UPDATE_CFG" > config.json
-          fi
-
       - name: Cache build artifacts
         uses: actions/cache@v4
         id: build_cache
@@ -42,6 +34,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-full-build-${{ hashFiles('config.toml') }}-
             ${{ runner.os }}-full-build-
+
+      - name: Update configuration
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          chmod +x build.sh utils.sh || :
+          if git checkout origin/update build.md 2>/dev/null; then
+            UPDATE_CFG=$(./build.sh config.toml --config-update)
+            [[ -n "$UPDATE_CFG" ]] && echo "$UPDATE_CFG" > config.json
+          fi
 
       - name: Get next version code
         id: next_ver_code
