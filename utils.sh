@@ -17,14 +17,7 @@ declare -F set_prebuilts &>/dev/null || set_prebuilts(){
   mkdir -p "$TEMP_DIR" "$BUILD_DIR" "$LOG_DIR" "$BIN_DIR" "$BIN_DIR/patchcache" &>/dev/null || :
   export OS="${OS:-$(uname -s)}"
   export ARCH="${ARCH:-$(uname -m)}"
-  export PYTHONOPTIMIZE=2 PYTHON_JIT=1
-  export MALLOC_CONF="metadata_thp:auto,tcache:true,background_thread:true,percpu_arena:percpu"
-  export _RJEM_MALLOC_CONF="$MALLOC_CONF"
-  export JAVA_OPTIONS="-Xmx2G -Xms2G -Dfile.encoding=UTF-8 -Dawt.useSystemAAFontSettings=on -Dswing.aatext=true -XX:+IgnoreUnrecognizedVMOptions -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions \
-    -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+OptimizeStringConcat -XX:+AlwaysPreTouch -Xlog:async -XX:+CompactStrings -XX:+CompressedClassSpaceSize -XX:+UseCompactObjectHeaders \
-    -XX:+UseCompressedClassesPointers -XX:+UseCompressedOops -XX:+UseFastUnorderedTimeStamps -XX:+RangeCheckElimination -XX:+UseLoopPredicate -XX:+UseFastJNIAccessors -XX:+UseInlineCaches \
-    -XX:+SegmentedCodeCache -XX:+ParallelRefProcEnabled"
-  export JVM_OPTS="${JVM_OPTS:--Dfile.encoding=utf-8 -Dawt.useSystemAAFontSettings=on -Dswing.aatext=true -XX:+IgnoreUnrecognizedVMOptions -XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions}"
+  export JVM_OPTS="${JVM_OPTS:--Dfile.encoding=utf-8}"
   [[ ":$PATH:" == *":$BIN_DIR:"* ]] || export PATH="$BIN_DIR:$PATH"
 }
 
