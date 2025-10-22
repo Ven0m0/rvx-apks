@@ -26,12 +26,7 @@ jobs:
         with:
           path: |
             bin/apksigner.jar
-            bin/dexlib2.jar
             bin/aapt2/aapt2-arm64
-            bin/toml/tq-arm64
-            bin/toml/tq-x86_64
-            bin/htmlq/htmlq-arm64
-            bin/htmlq/htmlq-x86_64
           key: ${{ runner.os }}-full-build-${{ hashFiles('config.toml') }}-${{ hashFiles('utils.sh') }}
           restore-keys: |
             ${{ runner.os }}-full-build-${{ hashFiles('config.toml') }}-
