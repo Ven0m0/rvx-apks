@@ -49,7 +49,7 @@ uptodown-dlurl = "https://youtube.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube"
 
 # Use patches from both sources
-patch-sources = ["rvx", "privacy"]
+patch-sources = ["privacy", "rvx"]
 included-patches = "'Change version code' 'Custom branding icon for YouTube' 'Custom branding name for YouTube' 'MaterialYou' 'Theme' 'Custom header for YouTube'"
 excluded-patches = "'Alternative thumbnails' 'Enable gradient loading screen' 'Enable debug logging'"
 patcher-args = "-e 'Custom branding icon for YouTube' -OappIcon=mmt -OdarkThemeBackgroundColor=@android:color/black -OlightThemeBackgroundColor=@android:color/white -OstrokeColor=?attr/ytChipBackground -e 'Visual preferences icons for YouTube' -OsettingsMenuIcon=revanced"
@@ -73,7 +73,7 @@ archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.a
 included-patches = "'Change version code' 'Custom branding icon for YouTube Music' 'Custom branding name for YouTube Music' 'Disable music video in album'"
 excluded-patches = "'Enable debug logging'"
 patcher-args = "-e 'Custom branding icon for YouTube Music' -OappIcon=mmt -e 'Visual preferences icons for YouTube Music' -OsettingsMenuIcon=revanced"
-patches-source = "anddea/revanced-patches"
+patch-sources = ["privacy", "rvx"]
 cli-source = "inotia00/revanced-cli"
 rv-brand = "RVX"
 
