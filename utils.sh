@@ -24,16 +24,24 @@ declare -F set_prebuilts &>/dev/null || set_prebuilts(){
 }
 
 # --- TOML helpers (prefer tq, fallback to python3 tomllib + jq) ---
-_toml_to_json_with_tq() {
+_toml_to_json_with_tq(){
   local file="$1" out="$2"
   if command -v tq &>/dev/null; then tq -f "$file" >"$out"; return $?; fi
   local tq_path
-  for tq_path in "$BIN_DIR/toml/tq" "$BIN_DIR/toml/tq-arm64" "$BIN_DIR/toml/tq-amd64"; do
-    [[ -x "$tq_path" ]] && { "$tq_path" -f "$file" >"$out"; return $?; }
+  local arch
+  arch=$(uname -m)
+  case "$arch" in
+    x86_64|amd64) tq_path="$BIN_DIR/toml/tq-amd64" ;;
+    aarch64|arm64) tq_path="$BIN_DIR/toml/tq-arm64" ;;
+    *) tq_path="$BIN_DIR/toml/tq" ;;
+  esac
+  [[ -x "$tq_path" ]] && { "$tq_path" -f "$file" >"$out"; return $?; }
+  for tq_try in "$BIN_DIR/toml/tq" "$BIN_DIR/toml/tq-arm64" "$BIN_DIR/toml/tq-amd64"; do
+    [[ -x "$tq_try" ]] && { "$tq_try" -f "$file" >"$out"; return $?; }
   done
   return 127
 }
-_toml_to_json_with_python() {
+_toml_to_json_with_python(){
   local file="$1" out="$2"
   command -v python3 &>/dev/null || return 127
   python3 - "$file" >"$out" <<'PY'
@@ -47,7 +55,7 @@ with open(sys.argv[1], 'rb') as f:
 json.dump(data, sys.stdout, ensure_ascii=False)
 PY
 }
-toml_prep() {
+toml_prep(){
   local file=${1:-config.toml}
   [[ -f "$file" ]] || return 1
   mkdir -p "$TEMP_DIR" &>/dev/null || :
@@ -78,7 +86,7 @@ get_patch_last_supported_ver(){ echo ""; return 0; }
 declare -F check_sig &>/dev/null || check_sig(){ return 0; }
 
 # --- Multi-source patches: enforce privacy LAST, cache combined ---
-get_multi_source_patches() {
+get_multi_source_patches(){
   local tbl=$1 cfg=$2
   local -a srcs rvx_jars mid_jars privacy_jars src_keys
   local ps_tbl first_cli
@@ -127,7 +135,7 @@ get_multi_source_patches() {
 }
 
 # Patch an APK with ReVanced CLI
-patch_apk() {
+patch_apk(){
   local stock=$1 out=$2 args_str=$3 cli=$4 ptch=$5
   local -a cmd=(java ${JVM_OPTS:-} -jar "$cli" patch -b "$ptch" -o "$out")
   eval "cmd+=( $args_str )"
@@ -137,7 +145,7 @@ patch_apk() {
 }
 
 # Optimize APK: prune languages/densities and optionally zipalign.
-optimize_apk() {
+optimize_apk(){
   local inp=$1 out=$2 tbl=$3
   local opt_en opt_lang opt_dens use_za tmpd
   tmpd="${TEMP_DIR}/opt-$$"
@@ -173,7 +181,7 @@ optimize_apk() {
 }
 
 # Main build function (relies on repo's dl_* helpers, get_rv_prebuilts, etc.)
-build_rv() {
+build_rv(){
   eval "declare -A args=${1#*=}"
   local version="" pkg_name=""
   local version_mode=${args[version]}
