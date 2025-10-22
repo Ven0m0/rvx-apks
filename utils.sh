@@ -31,12 +31,12 @@ _toml_to_json_with_tq(){
   local arch
   arch=$(uname -m)
   case "$arch" in
-    x86_64|amd64) tq_path="$BIN_DIR/toml/tq-amd64" ;;
+    x86_64|amd64) tq_path="$BIN_DIR/toml/tq-x86_64" ;;
     aarch64|arm64) tq_path="$BIN_DIR/toml/tq-arm64" ;;
     *) tq_path="$BIN_DIR/toml/tq" ;;
   esac
   [[ -x "$tq_path" ]] && { "$tq_path" -f "$file" >"$out"; return $?; }
-  for tq_try in "$BIN_DIR/toml/tq" "$BIN_DIR/toml/tq-arm64" "$BIN_DIR/toml/tq-amd64"; do
+  for tq_try in "$BIN_DIR/toml/tq" "$BIN_DIR/toml/tq-arm64" "$BIN_DIR/toml/tq-x86_64"; do
     [[ -x "$tq_try" ]] && { "$tq_try" -f "$file" >"$out"; return $?; }
   done
   return 127
