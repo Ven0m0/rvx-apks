@@ -1,7 +1,7 @@
 name: Build APKs
 on:
   workflow_dispatch:
-  schedule: [{cron: "0 0 * * 0"}]
+  #schedule: [{cron: "0 0 * * 0"}]
 
 jobs:
   build:
@@ -25,39 +25,22 @@ jobs:
         id: build_cache
         with:
           path: |
-            temp
-            bin/patchcache
             bin/apksigner.jar
+            bin/dexlib2.jar
             bin/aapt2/aapt2-arm64
             bin/toml/tq-arm64
+            bin/toml/tq-x86_64
+            bin/htmlq/htmlq-arm64
+            bin/htmlq/htmlq-x86_64
           key: ${{ runner.os }}-full-build-${{ hashFiles('config.toml') }}-${{ hashFiles('utils.sh') }}
           restore-keys: |
             ${{ runner.os }}-full-build-${{ hashFiles('config.toml') }}-
             ${{ runner.os }}-full-build-
 
-      - name: Update configuration
-        if: ${{ github.event_name == 'workflow_dispatch' }}
-        run: |
-          chmod +x build.sh utils.sh || :
-          if git checkout origin/update build.md 2>/dev/null; then
-            UPDATE_CFG=$(./build.sh config.toml --config-update)
-            [[ -n "$UPDATE_CFG" ]] && echo "$UPDATE_CFG" > config.json
-          fi
-
-      - name: Get next version code
-        id: next_ver_code
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG=$(gh release list -L 1 | awk -F '\t' '{print $3}')
-          [[ -z "$TAG" ]] && TAG=0
-          echo "NEXT_VER_CODE=$((TAG + 1))" >> $GITHUB_OUTPUT
-
       - name: Build APKs
         continue-on-error: true
         run: |
-          chmod +x build.sh utils.sh
-          ./build.sh config.toml
+          chmod +x build.sh utils.sh && ./build.sh config.toml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: $GITHUB_REPOSITORY
@@ -69,7 +52,7 @@ jobs:
           name: build-artifacts
           path: ./build/
 
-      - name: Prepare release info
+      - name: Get output
         id: get_output
         run: |
           echo "DATE=$(date +%y.%m.%d)" >> "$GITHUB_OUTPUT"
@@ -77,27 +60,14 @@ jobs:
           echo "BUILD_LOG<<${DELIM}" >> "$GITHUB_OUTPUT"
           cat build.md >> "$GITHUB_OUTPUT"
           echo "${DELIM}" >> "$GITHUB_OUTPUT"
-          cp -f build.md build.tmp
 
-      - name: Create release
+      - name: Upload APKs to release
         uses: svenstaro/upload-release-action@v2
         with:
           body: ${{ steps.get_output.outputs.BUILD_LOG }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: ./build/*
           release_name: ${{ steps.get_output.outputs.DATE }}
-          tag: ${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}
+          tag: ${{ steps.get_output.outputs.DATE }}
           file_glob: true
           overwrite: true
-
-      - name: Update changelog
-        run: |
-          git checkout -f update 2>/dev/null || git switch --discard-changes --orphan update
-          cp -f build.tmp build.md
-
-      - name: Commit changelog
-        uses: stefanzweifel/git-auto-commit-action@v7
-        with:
-          branch: update
-          file_pattern: build.md
-          commit_message: Bump version ${{ steps.next_ver_code.outputs.NEXT_VER_CODE }}
