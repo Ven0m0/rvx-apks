@@ -1,0 +1,14 @@
+name: Sync Blocklists
+
+on:
+  schedule: [{cron: "0 3 * * *"}]
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run sync script
+        shell: bash
+        run: ./sync-lists.sh
