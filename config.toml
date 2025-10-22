@@ -52,7 +52,7 @@ apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube"
 patch-sources = ["rvx", "privacy"]
 included-patches = "'Change version code' 'Custom branding icon for YouTube' 'Custom branding name for YouTube' 'MaterialYou' 'Theme' 'Custom header for YouTube'"
 excluded-patches = "'Alternative thumbnails' 'Enable gradient loading screen' 'Enable debug logging'"
-patcher-args = "-e 'Custom branding icon for YouTube' -OappIcon='revancify_red' -OdarkThemeBackgroundColor=@android:color/black -OlightThemeBackgroundColor=@android:color/white -OstrokeColor=?attr/ytChipBackground -e 'Visual preferences icons for YouTube' -OsettingsMenuIcon=revanced"
+patcher-args = "-e 'Custom branding icon for YouTube' -OappIcon=mmt -OdarkThemeBackgroundColor=@android:color/black -OlightThemeBackgroundColor=@android:color/white -OstrokeColor=?attr/ytChipBackground -e 'Visual preferences icons for YouTube' -OsettingsMenuIcon=revanced"
 rv-brand = "RVX"
 
 # App-specific optimization settings
@@ -72,7 +72,7 @@ apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube-music"
 archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.apps.youtube.music"
 included-patches = "'Change version code' 'Custom branding icon for YouTube Music' 'Custom branding name for YouTube Music' 'Disable music video in album'"
 excluded-patches = "'Enable debug logging'"
-patcher-args = "-e 'Custom branding icon for YouTube Music' -OappIcon='revancify_red' -e 'Visual preferences icons for YouTube Music' -OsettingsMenuIcon=revanced"
+patcher-args = "-e 'Custom branding icon for YouTube Music' -OappIcon=mmt -e 'Visual preferences icons for YouTube Music' -OsettingsMenuIcon=revanced"
 patches-source = "anddea/revanced-patches"
 cli-source = "inotia00/revanced-cli"
 rv-brand = "RVX"
@@ -97,22 +97,13 @@ patches-source = "anddea/revanced-patches"
 cli-source = "inotia00/revanced-cli"
 rv-brand = "RVX"
 
-[X]
-enabled = false
-uptodown-dlurl = "https://twitter.en.uptodown.com/android"
-apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
-patches-source = "crimera/piko"
-rv-brand = "Piko"
-included-patches = "'Change version code'"
-dpi = "120-640dpi"
-
 [Spotify]
 enabled = false
 app-name = "Spotify"
 build-mode = "apk"
 arch = "arm64-v8a"
 version = "auto"
-#riplib = true
+riplib = true
 included-patches = "'Change version code' 'Custom theme'"
 uptodown-dlurl = "https://spotify.en.uptodown.com/android"
 patcher-args = "-e 'Custom branding name for Spotify' -OappName='RVX Spotify'"
@@ -128,3 +119,12 @@ uptodown-dlurl = "https://tiktok.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/tiktok-pte-ltd/tik-tok-including-musical-ly"
 arch = "arm64-v8a"
 build-mode = "apk"
+
+[X]
+enabled = false
+uptodown-dlurl = "https://twitter.en.uptodown.com/android"
+apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
+patches-source = "crimera/piko"
+rv-brand = "Piko"
+included-patches = "'Change version code' 'Dynamic color'"
+dpi = "120-640dpi"
