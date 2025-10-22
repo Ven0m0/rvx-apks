@@ -1,6 +1,6 @@
 <h1 align="center">
     <picture>
-        <img loading="lazy" decoding="async" src="https://readme-typing-svg.demolab.com?font=Google+Sans&size=25&pause=1000&color=F70000&center=true&vCenter=true&random=false&width=435&lines=%F0%9F%93%A6+ReVanced's+pre-made+APKs">
+        <img src="https://readme-typing-svg.demolab.com?font=Google+Sans&size=25&pause=1000&color=F70000&center=true&vCenter=true&random=false&width=435&lines=%F0%9F%93%A6+ReVanced's+pre-made+APKs">
     </picture>
 </h1>
 
@@ -33,17 +33,27 @@ You can update apps using [Obtainium](https://github.com/ImranR98/Obtainium/?tab
 <details>
 <summary>➡️ Apps List:</summary>
 
-- <picture><img loading="lazy" decoding="async" src="https://play-lh.googleusercontent.com/6am0i3walYwNLc08QOOhRJttQENNGkhlKajXSERf3JnPVRQczIyxw2w3DxeMRTOSdsY=s48-rw" width="20" height="20"></picture> [`YouTube`](https://play.google.com/store/apps/details?id=com.google.android.youtube)
-- <picture><img loading="lazy" decoding="async" src="https://play-lh.googleusercontent.com/zD8UA5CRdiPzbvTwGKtzR4KjQpxqEK6X0tGDpzEaOo0xPEvG6HUiC_0qkpTfzpuMTqU=s48-rw" width="20" height="20"></picture> [`YouTube Music`](https://play.google.com/store/apps/details?id=com.google.android.apps.youtube.music)
-- <picture><img loading="lazy" decoding="async" src="https://play-lh.googleusercontent.com/NaFAbO7ExS4NRAvt2GYkNY6OQf9oVXwmdMTZzA6zrgjjSxhQuTCnjHyf7TgYcoSGqQ=s48-rw" width="20" height="20"></picture> [`Reddit`](https://play.google.com/store/apps/details?id=com.reddit.frontpage)
-- <picture><img loading="lazy" decoding="async" src="https://play-lh.googleusercontent.com/7ynvVIRdhJNAngCg_GI7i8TtH8BqkJYmffeUHsG-mJOdzt1XLvGmbsKuc5Q1SInBjDKN=s48-rw" width="20" height="20"></picture> [`Spotify`](https://play.google.com/store/apps/details?id=com.spotify.music)
+- <picture><img src="https://play-lh.googleusercontent.com/6am0i3walYwNLc08QOOhRJttQENNGkhlKajXSERf3JnPVRQczIyxw2w3DxeMRTOSdsY=s48-rw" width="20" height="20"></picture> [`YouTube`](https://play.google.com/store/apps/details?id=com.google.android.youtube)
+- <picture><img src="https://play-lh.googleusercontent.com/zD8UA5CRdiPzbvTwGKtzR4KjQpxqEK6X0tGDpzEaOo0xPEvG6HUiC_0qkpTfzpuMTqU=s48-rw" width="20" height="20"></picture> [`YouTube Music`](https://play.google.com/store/apps/details?id=com.google.android.apps.youtube.music)
+- <picture><img src="https://play-lh.googleusercontent.com/NaFAbO7ExS4NRAvt2GYkNY6OQf9oVXwmdMTZzA6zrgjjSxhQuTCnjHyf7TgYcoSGqQ=s48-rw" width="20" height="20"></picture> [`Reddit`](https://play.google.com/store/apps/details?id=com.reddit.frontpage)
+- <picture><img src="https://play-lh.googleusercontent.com/7ynvVIRdhJNAngCg_GI7i8TtH8BqkJYmffeUHsG-mJOdzt1XLvGmbsKuc5Q1SInBjDKN=s48-rw" width="20" height="20"></picture> [`Spotify`](https://play.google.com/store/apps/details?id=com.spotify.music)
 </details>
 
 ### [🧩 `Piko`](https://github.com/crimera/piko) (coming soon)
 <details>
 <summary>➡️ Apps List:</summary>
 
-- <picture><img loading="lazy" decoding="async" src="https://play-lh.googleusercontent.com/XyI6Hyz9AFg7E_joVzX2zh6CpWm9B2DG2JuEz5meCFVm4-wTKTnHgqbmg62iFKe4Gzca=s48-rw" width="20" height="20"></picture> [`X`](https://play.google.com/store/apps/details?id=com.twitter.android)
+- <picture><img src="https://play-lh.googleusercontent.com/XyI6Hyz9AFg7E_joVzX2zh6CpWm9B2DG2JuEz5meCFVm4-wTKTnHgqbmg62iFKe4Gzca=s48-rw" width="20" height="20"></picture> [`X`](https://play.google.com/store/apps/details?id=com.twitter.android)
+</details>
+
+### [🧩 `Privacy-patches`](https://github.com/jkennethcarino/privacy-revanced-patches)
+<details>
+<summary>➡️ Summary:</summary>
+
+- [Auto updating filterlists for blocking ads and trackers included](lists) ( For use with [HostBlocker patch](https://github.com/jkennethcarino/privacy-revanced-patches/tree/main/patches/src/main/kotlin/dev/jkcarino/revanced/patches/all/contentblocker/hosts) )
+- Universal ads & tracking blocker, analytics blocker (Firebase & webview)
+- Reddit ad & telemetry remover
+- Gboard always ingognito, ocr enabled, ability to undo!
 </details>
 
 ## 📜 Resources & Credits
