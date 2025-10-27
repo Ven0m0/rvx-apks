@@ -17,6 +17,11 @@ vtf(){
   fi
 }
 
+# Check if required tools are available
+command -v jq && echo "✓ jq installed" || echo "✗ jq missing"
+command -v java && echo "✓ java installed" || echo "✗ java missing"
+command -v zip && echo "✓ zip installed" || echo "✗ zip missing"
+
 toml_prep "${1:-config.toml}"||abort "Could not find config file '${1:-config.toml}'\n\tUsage: $0 <config.toml>"
 main_config_t=$(toml_get_table_main)
 
