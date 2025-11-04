@@ -14,9 +14,6 @@
 ## ⭐ Overview
 Here you can download and use applications selected for this repository, which are modified and extended with many functionalities that will certainly be useful to you.
 
-> [!IMPORTANT]
-> Keep in mind that some builds may not work as expected due to changes in the app/patch code. In this case, there is nothing I can do, I just provide the pre-made APK files.
-
 ## 🔥 Features
 - 🛑 **Ad-blocking**: blocks every kind of advertisement (who needs them?).
 - 🚀 **Extended functionality**: extracts more possibilities from the app.
