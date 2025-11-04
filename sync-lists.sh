@@ -9,7 +9,7 @@ declare -A files=(
 )
 # Fetch each file
 for t in "${!files[@]}"; do
-  curl -fsSL "${files[$t]}" >"${t}.tmp" && mv "${t}.tmp" "$t"
+  curl -fsL "${files[$t]}" -o "${t}.tmp" && mv "${t}.tmp" "$t"
 done
 # git commit if changes
 git add lists/
