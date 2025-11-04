@@ -2,11 +2,19 @@ name: Build APKs
 on:
   workflow_dispatch:
   #schedule: [{cron: "0 0 * * 0"}]
+permissions: write-all
 
 jobs:
   build:
-    permissions: write-all
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - id: "YouTube"
+          - id: "Music"
+          - id: "Reddit"
+          - id: "Spotify"
     steps:
       - name: Set up Java
         uses: actions/setup-java@v5
@@ -31,6 +39,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-full-build-${{ hashFiles('config.toml') }}-
             ${{ runner.os }}-full-build-
+
+      - name: Generate ${{ matrix.id }} config
+        run: |
+          ./extras.sh separate-config config.toml ${{ matrix.id }} sep_config.toml
+          cat sep_config.toml
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: $GITHUB_REPOSITORY
 
       - name: Build APKs
         continue-on-error: true
