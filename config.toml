@@ -8,11 +8,18 @@ riplib = true
 build-mode = "apk"
 arch = "arm64-v8a"
 
-jvm-flags = "-Dfile.encoding=utf-8 -Djdk.util.zip.disableZip64ExtraFieldValidation=true -Djdk.nio.zipfs.allowDotZipEntry=true -Xmx2G -XX:+UseParallelGC -XX:+UseStringDeduplication"
+# Optimized JVM flags for Java 21+ with better performance
+# - G1GC: Better for large heaps and low pause times
+# - MaxGCPauseMillis: Target max pause time for smoother builds
+# - UseStringDeduplication: Reduce memory usage from duplicate strings
+# - MaxRAMPercentage: Use up to 75% of available RAM
+# - CompressedOops: Reduce memory footprint on 64-bit systems
+jvm-flags = "-Dfile.encoding=UTF-8 -Djdk.util.zip.disableZip64ExtraFieldValidation=true -Djdk.nio.zipfs.allowDotZipEntry=true -Xms512M -Xmx4G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+UseStringDeduplication -XX:+OptimizeStringConcat -XX:MaxRAMPercentage=75.0 -XX:+UseCompressedOops -XX:+TieredCompilation"
 
+# APK Optimization: Aggressive settings for smaller, faster APKs
 optimize-apk = true
 optimize-languages = "en"
-optimize-densities = "nodpi,anydpi,xxhdpi"
+optimize-densities = "nodpi,xxhdpi,xxxhdpi"
 zipalign = true
 cache-apk = true
 
@@ -36,71 +43,104 @@ version = "latest"
 cli-version = "latest"
 
 # ---- Apps ----
+# YouTube: Main app with privacy and extended patches
 [YouTube]
 enabled = true
 version = "20.21.37"
 arch = "arm64-v8a"
 riplib = true
+cache-apk = true
 uptodown-dlurl = "https://youtube.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube"
 patch-sources = "privacy,rvx"
+# Note: Most patch options are now configured via options.json for better maintainability
 included-patches = "'Change version code' 'Custom branding icon for YouTube' 'Custom branding name for YouTube' 'MaterialYou' 'Theme' 'Custom header for YouTube'"
 excluded-patches = "'Alternative thumbnails' 'Enable gradient loading screen' 'Enable debug logging'"
-patcher-args = "-e 'Custom branding icon for YouTube' -OappIcon=mmt -OdarkThemeBackgroundColor=@android:color/black -OlightThemeBackgroundColor=@android:color/white -OstrokeColor=?attr/ytChipBackground -e 'Visual preferences icons for YouTube' -OsettingsMenuIcon=revanced"
 optimize-apk = true
 optimize-languages = "en"
 optimize-densities = "nodpi,xxhdpi,xxxhdpi"
 
+# YouTube Music: Music streaming with privacy and extended patches
 [Music]
 enabled = true
 version = "8.30.54"
 arch = "arm64-v8a"
 riplib = true
+cache-apk = true
 uptodown-dlurl = "https://youtube-music.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube-music"
 archive-dlurl = "https://archive.org/download/jhc-apks/apks/com.google.android.apps.youtube.music"
 patch-sources = "privacy,rvx"
+# Note: Most patch options are now configured via options.json for better maintainability
 included-patches = "'Change version code' 'Custom branding icon for YouTube Music' 'Custom branding name for YouTube Music' 'Disable music video in album'"
 excluded-patches = "'Enable debug logging'"
-patcher-args = "-e 'Custom branding icon for YouTube Music' -OappIcon=mmt -e 'Visual preferences icons for YouTube Music' -OsettingsMenuIcon=revanced"
 optimize-apk = true
 optimize-languages = "en"
+optimize-densities = "nodpi,xxhdpi,xxxhdpi"
 
+# Reddit: Social media app with extended patches
 [Reddit]
 enabled = false
 app-name = "Reddit"
 arch = "arm64-v8a"
-dpi = "320-480dpi"
+dpi = "nodpi"
 version = "auto"
 riplib = true
+cache-apk = true
+patch-sources = "rvx"
 included-patches = "'Change version code' 'Custom branding name for Reddit'"
-patcher-args = "-e 'Custom branding name for Reddit' -OappName='RVX Reddit'"
 uptodown-dlurl = "https://reddit-official-app.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/redditinc/reddit"
+optimize-apk = true
+optimize-languages = "en"
+optimize-densities = "nodpi,xxhdpi,xxxhdpi"
 
+# Spotify: Music streaming with extended patches
 [Spotify]
 enabled = false
 app-name = "Spotify"
 arch = "arm64-v8a"
 version = "auto"
 riplib = true
+cache-apk = true
+patch-sources = "rvx"
 included-patches = "'Change version code' 'Custom theme'"
 uptodown-dlurl = "https://spotify.en.uptodown.com/android"
-patcher-args = "-e 'Custom branding name for Spotify' -OappName='RVX Spotify'"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/spotify-ab/spotify-music-podcasts"
+optimize-apk = true
+optimize-languages = "en"
+optimize-densities = "nodpi,xxhdpi,xxxhdpi"
 
+# TikTok: Social media video app
 [TikTok]
 enabled = false
+app-name = "TikTok"
 arch = "arm64-v8a"
-included-patches = "'SIM spoof'"
+version = "auto"
+riplib = true
+cache-apk = true
+patch-sources = "rvx"
+included-patches = "'SIM spoof' 'Change version code'"
 uptodown-dlurl = "https://tiktok.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/tiktok-pte-ltd/tik-tok-including-musical-ly"
+optimize-apk = true
+optimize-languages = "en"
+optimize-densities = "nodpi,xxhdpi,xxxhdpi"
 
+# X (Twitter): Social media with Piko patches
 [X]
 enabled = false
+app-name = "X"
+arch = "arm64-v8a"
+version = "auto"
+riplib = true
+cache-apk = true
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"
 apkmirror-dlurl = "https://www.apkmirror.com/apk/x-corp/twitter"
 patches-source = "crimera/piko"
 rv-brand = "Piko"
 included-patches = "'Change version code' 'Dynamic color'"
-dpi = "120-640dpi"
+dpi = "nodpi"
+optimize-apk = true
+optimize-languages = "en"
+optimize-densities = "nodpi,xxhdpi,xxxhdpi"
