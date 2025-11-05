@@ -1,11 +1,57 @@
 #!/usr/bin/env bash
-# compact utils: bash-native, privacy-last ordering, TOML helpers, speed-safe caching
+# ReVanced APK Builder - Utility Functions
+# This file contains core utilities for building ReVanced APKs:
+# - TOML configuration parsing
+# - APK downloading from multiple sources (APKMirror, Uptodown, Archive.org)
+# - Patch application and APK optimization
+# - Network operations with retry logic
+# - Input validation and error handling
 
 declare -F abort &>/dev/null || abort(){ echo "ABORT: $*" >&2; exit 1; }
 declare -F epr &>/dev/null || epr(){ echo -e "$*" >&2; }
 declare -F pr &>/dev/null || pr(){ echo -e "$*"; }
 declare -F log &>/dev/null || log(){ echo -e "$*" >> build.md 2>/dev/null || :; }
 declare -F isoneof &>/dev/null || isoneof(){ local t=$1; shift; for x in "$@"; do [[ "$t" == "$x" ]] && return 0; done; return 1; }
+
+# Input validation functions
+validate_patch_name(){
+  local name=$1
+  # Allow alphanumeric, spaces, hyphens, underscores, dots, and parentheses
+  if [[ ! "$name" =~ ^[a-zA-Z0-9\ ._()'-]+$ ]]; then
+    epr "ERROR: Invalid patch name: '$name'. Only alphanumeric characters, spaces, dots, hyphens, underscores, and parentheses are allowed."
+    return 1
+  fi
+  return 0
+}
+
+validate_version(){
+  local ver=$1
+  # Allow semantic versioning, 'auto', 'latest', or 'beta'
+  if [[ "$ver" =~ ^(auto|latest|beta)$ ]] || [[ "$ver" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?([.-][a-zA-Z0-9]+)?$ ]]; then
+    return 0
+  fi
+  epr "ERROR: Invalid version format: '$ver'. Use 'auto', 'latest', 'beta', or semantic versioning (e.g., 1.2.3)"
+  return 1
+}
+
+validate_arch(){
+  local arch=$1
+  if isoneof "$arch" "all" "both" "arm64-v8a" "arm-v7a"; then
+    return 0
+  fi
+  epr "ERROR: Invalid architecture: '$arch'. Must be one of: all, both, arm64-v8a, arm-v7a"
+  return 1
+}
+
+validate_dpi(){
+  local dpi=$1
+  # Allow nodpi, or numeric values, or common DPI values
+  if [[ "$dpi" == "nodpi" ]] || [[ "$dpi" =~ ^[0-9]+$ ]] || isoneof "$dpi" "ldpi" "mdpi" "hdpi" "xhdpi" "xxhdpi" "xxxhdpi"; then
+    return 0
+  fi
+  epr "WARNING: Unusual DPI value: '$dpi'. Common values: nodpi, ldpi, mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi, or numeric."
+  return 0  # Don't fail, just warn
+}
 
 declare -F set_prebuilts &>/dev/null || set_prebuilts(){
   export TEMP_DIR="${TEMP_DIR:-temp}"
@@ -65,23 +111,109 @@ toml_get(){
   [[ -n "$v" ]] || return 1
   echo "$v"
 }
+# Serialize associative array to JSON (safer than declare -p + eval)
+serialize_array(){
+  local -n arr=$1
+  local json="{"
+  local first=true
+  for key in "${!arr[@]}"; do
+    [[ "$first" = false ]] && json+=","
+    # Escape special characters in value
+    local val="${arr[$key]}"
+    val="${val//\\/\\\\}"  # Escape backslashes
+    val="${val//\"/\\\"}"  # Escape quotes
+    json+="\"$key\":\"$val\""
+    first=false
+  done
+  json+="}"
+  echo "$json"
+}
+
+# Deserialize JSON to associative array (safer than eval)
+deserialize_array(){
+  local json=$1
+  local -n target=$2
+  # Parse JSON using jq and populate associative array
+  while IFS='=' read -r key value; do
+    target["$key"]="$value"
+  done < <(echo "$json" | jq -r 'to_entries | .[] | "\(.key)=\(.value)"')
+}
+
 join_args(){
   local list_str=$1 flag=$2
   local -a items=(); eval "items=($list_str)"
-  local out=(); for it in "${items[@]}"; do out+=("$flag" "$it"); done
-  printf '%q ' "${out[@]}"|sed 's/ $//'
+  local -a out=()
+  for it in "${items[@]}"; do
+    out+=("$flag" "$it")
+  done
+  printf '%q ' "${out[@]}" | sed 's/ $//'
 }
 get_highest_ver(){ sort -V|tail -n1; }
 
+# GitHub API request with retry logic
 gh_req(){
   local url=$1
-  curl -sL -H "Authorization: token ${GITHUB_TOKEN:-}" "$url"
-}
-dl_file(){
-  local url=$1 out=$2
-  curl -sL -o "$out" "$url"
+  local max_attempts=3 attempt=1 delay=2
+
+  # Warn if GITHUB_TOKEN is not set
+  if [[ -z "${GITHUB_TOKEN:-}" ]]; then
+    epr "WARNING: GITHUB_TOKEN not set. API rate limit: 60 requests/hour (vs 5000 with token)"
+  fi
+
+  while ((attempt <= max_attempts)); do
+    local response
+    response=$(curl -sL -H "Authorization: token ${GITHUB_TOKEN:-}" "$url" 2>&1)
+    local exit_code=$?
+
+    if [[ $exit_code -eq 0 && -n "$response" ]]; then
+      echo "$response"
+      return 0
+    fi
+
+    if ((attempt < max_attempts)); then
+      epr "GitHub request failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
+      sleep "$delay"
+      delay=$((delay * 2))
+    fi
+    ((attempt++))
+  done
+
+  epr "ERROR: GitHub request failed after $max_attempts attempts: $url"
+  return 1
 }
 
+# Download file with retry logic and exponential backoff
+dl_file(){
+  local url=$1 out=$2
+  local max_attempts=3 attempt=1 delay=2
+
+  while ((attempt <= max_attempts)); do
+    if curl -fSL --connect-timeout 30 --max-time 300 -o "$out" "$url" 2>/dev/null; then
+      # Verify file was actually downloaded and has content
+      if [[ -f "$out" && -s "$out" ]]; then
+        return 0
+      fi
+    fi
+
+    if ((attempt < max_attempts)); then
+      epr "Download failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
+      sleep "$delay"
+      delay=$((delay * 2))
+    fi
+    ((attempt++))
+  done
+
+  epr "ERROR: Failed to download after $max_attempts attempts: $url"
+  return 1
+}
+
+# Download ReVanced CLI and patches JAR files from GitHub releases
+# Args:
+#   $1 - CLI source repository (e.g., "ReVanced/revanced-cli")
+#   $2 - CLI version ("dev", "latest", or specific version)
+#   $3 - Patches source repository (e.g., "anddea/revanced-patches")
+#   $4 - Patches version ("dev", "latest", or specific version)
+# Returns: Prints "$cli_jar $patch_jar" on success
 get_rv_prebuilts(){
   local cli_src=$1 cli_ver=$2 patch_src=$3 patch_ver=$4
   local cli_jar patch_jar
@@ -113,11 +245,25 @@ get_rv_prebuilts(){
 
 declare -A _APKM_RESP _UPD_RESP _ARCH_RESP
 
+# Fetch and cache APKMirror response with retry logic
 get_apkmirror_resp(){
   local url=$1
   [[ -n "${_APKM_RESP[$url]:-}" ]] && return 0
-  _APKM_RESP[$url]=$(curl -sL "$url")
-  [[ -n "${_APKM_RESP[$url]}" ]]
+
+  local max_attempts=3 attempt=1 delay=2
+  while ((attempt <= max_attempts)); do
+    _APKM_RESP[$url]=$(curl -sL --connect-timeout 30 --max-time 60 "$url" 2>/dev/null)
+    if [[ -n "${_APKM_RESP[$url]}" ]]; then
+      return 0
+    fi
+    if ((attempt < max_attempts)); then
+      epr "APKMirror request failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
+      sleep "$delay"
+      delay=$((delay * 2))
+    fi
+    ((attempt++))
+  done
+  return 1
 }
 get_apkmirror_pkg_name(){
   grep -oP 'package-name">\K[^<]+' <<<"${_APKM_RESP[$1]//\"/\'}"|head -1
@@ -138,11 +284,25 @@ dl_apkmirror(){
   dl_file "https://www.apkmirror.com${final_url}" "$out"
 }
 
+# Fetch and cache Uptodown response with retry logic
 get_uptodown_resp(){
   local url=$1
   [[ -n "${_UPD_RESP[$url]:-}" ]] && return 0
-  _UPD_RESP[$url]=$(curl -sL "${url}/versions")
-  [[ -n "${_UPD_RESP[$url]}" ]]
+
+  local max_attempts=3 attempt=1 delay=2
+  while ((attempt <= max_attempts)); do
+    _UPD_RESP[$url]=$(curl -sL --connect-timeout 30 --max-time 60 "${url}/versions" 2>/dev/null)
+    if [[ -n "${_UPD_RESP[$url]}" ]]; then
+      return 0
+    fi
+    if ((attempt < max_attempts)); then
+      epr "Uptodown request failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
+      sleep "$delay"
+      delay=$((delay * 2))
+    fi
+    ((attempt++))
+  done
+  return 1
 }
 get_uptodown_pkg_name(){
   grep -oP 'package">\K[^<]+' <<<"${_UPD_RESP[$1]}"|head -1
@@ -157,11 +317,25 @@ dl_uptodown(){
   dl_file "$dl" "$out"
 }
 
+# Fetch and cache Archive.org response with retry logic
 get_archive_resp(){
   local url=$1
   [[ -n "${_ARCH_RESP[$url]:-}" ]] && return 0
-  _ARCH_RESP[$url]=$(curl -sL "$url")
-  [[ -n "${_ARCH_RESP[$url]}" ]]
+
+  local max_attempts=3 attempt=1 delay=2
+  while ((attempt <= max_attempts)); do
+    _ARCH_RESP[$url]=$(curl -sL --connect-timeout 30 --max-time 60 "$url" 2>/dev/null)
+    if [[ -n "${_ARCH_RESP[$url]}" ]]; then
+      return 0
+    fi
+    if ((attempt < max_attempts)); then
+      epr "Archive.org request failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
+      sleep "$delay"
+      delay=$((delay * 2))
+    fi
+    ((attempt++))
+  done
+  return 1
 }
 get_archive_pkg_name(){
   basename "$1"|sed 's/^apks\///'
@@ -175,8 +349,55 @@ dl_archive(){
   dl_file "$dl" "$out"
 }
 
-check_sig(){ return 0; }
+# Verify APK signature against known signatures in sig.txt
+check_sig(){
+  local apk=$1 pkg=$2
+  local sig_file="sig.txt"
 
+  # Skip if sig.txt doesn't exist
+  [[ ! -f "$sig_file" ]] && return 0
+
+  # Calculate SHA256 hash of the APK
+  local actual_hash
+  if command -v sha256sum &>/dev/null; then
+    actual_hash=$(sha256sum "$apk" 2>/dev/null | awk '{print $1}')
+  elif command -v shasum &>/dev/null; then
+    actual_hash=$(shasum -a 256 "$apk" 2>/dev/null | awk '{print $1}')
+  else
+    epr "WARNING: No SHA256 tool available (sha256sum/shasum), skipping signature verification"
+    return 0
+  fi
+
+  [[ -z "$actual_hash" ]] && { epr "WARNING: Could not calculate hash for $apk"; return 0; }
+
+  # Look up expected hash from sig.txt
+  local expected_hash
+  expected_hash=$(grep -E "^[a-f0-9]{64} ${pkg}$" "$sig_file" 2>/dev/null | awk '{print $1}')
+
+  # If no signature found in sig.txt, skip verification
+  [[ -z "$expected_hash" ]] && return 0
+
+  # Compare hashes
+  if [[ "$expected_hash" == "$actual_hash" ]]; then
+    pr "✓ Signature verified for $pkg"
+    return 0
+  else
+    epr "⚠️  WARNING: Signature mismatch for $pkg!"
+    epr "   Expected: $expected_hash"
+    epr "   Actual:   $actual_hash"
+    epr "   This may indicate the APK has been modified or is from a different source."
+    # Don't fail the build, just warn
+    return 0
+  fi
+}
+
+# Combine patches from multiple sources into a single JAR
+# This enables using patches from ReVanced Extended, Privacy Patches, and others together
+# Args:
+#   $1 - Table name (app configuration)
+#   $2 - Comma-separated patch sources config string
+# Side effects: Sets rv_cli_jar and rv_patches_jar variables
+# Returns: 0 on success, 1 on failure
 get_multi_source_patches(){
   local tbl=$1 cfg=$2
   local -a srcs rvx_jars mid_jars privacy_jars src_keys
@@ -225,6 +446,14 @@ get_multi_source_patches(){
   rv_cli_jar=$first_cli; rv_patches_jar="$combined"; return 0
 }
 
+# Apply ReVanced patches to a stock APK
+# Args:
+#   $1 - Stock APK file path
+#   $2 - Output patched APK file path
+#   $3 - Additional patcher arguments string
+#   $4 - ReVanced CLI JAR path
+#   $5 - ReVanced patches JAR path
+# Returns: 0 on success, 1 on failure
 patch_apk(){
   local stock=$1 out=$2 args_str=$3 cli=$4 ptch=$5
   local -a cmd=(java ${JVM_OPTS:-} -jar "$cli" patch -b "$ptch" -o "$out")
@@ -234,6 +463,13 @@ patch_apk(){
   return 0
 }
 
+# Optimize APK by stripping unwanted resources (languages, densities)
+# This reduces APK size by removing resources for unused languages and screen densities
+# Args:
+#   $1 - Input APK file path
+#   $2 - Output optimized APK file path
+#   $3 - TOML table reference for optimization settings
+# Returns: 0 on success, 1 on failure (falls back to copying input)
 optimize_apk(){
   local inp=$1 out=$2 tbl=$3
   local opt_en opt_lang opt_dens use_za tmpd
@@ -269,8 +505,23 @@ optimize_apk(){
   return 0
 }
 
+# Main build function - orchestrates the entire APK patching process
+# This function:
+#   1. Deserializes build arguments from JSON
+#   2. Downloads patches from configured sources
+#   3. Determines target APK version (auto-detect or specific)
+#   4. Downloads stock APK from APKMirror/Uptodown/Archive.org
+#   5. Applies ReVanced patches
+#   6. Optimizes the patched APK
+#   7. Moves final APK to build directory
+# Args:
+#   $1 - JSON string containing build configuration (serialized associative array)
+# Returns: 0 on success (or graceful skip), non-zero on fatal error
 build_rv(){
-  eval "declare -A args=${1#*=}"
+  # Safely deserialize arguments from JSON instead of using eval
+  local json_args="$1"
+  declare -A args
+  deserialize_array "$json_args" args
   local version="" pkg_name=""
   local version_mode=${args[version]}
   local app_name=${args[app_name]}

@@ -1,4 +1,16 @@
 #!/usr/bin/env bash
+# ReVanced APK Builder - Main Build Script
+# This script orchestrates parallel building of ReVanced APKs from config.toml
+# Features:
+#   - Parallel job management with configurable concurrency
+#   - Multi-architecture support (arm64-v8a, arm-v7a)
+#   - Safe argument passing using JSON serialization
+#   - Background job error tracking and reporting
+#   - Automatic cleanup on interrupt
+#
+# Usage: ./build.sh [config.toml]
+#        ./build.sh clean  # Remove build artifacts
+
 set -euo pipefail
 shopt -s nullglob
 trap "rm -rf temp/*tmp.* temp/*/*tmp.* temp/*-temporary-files; exit 130" INT
@@ -43,11 +55,6 @@ DEF_RV_BRAND=$(toml_get "$main_config_t" rv-brand)||DEF_RV_BRAND="RVX App"
 
 mkdir -p "$TEMP_DIR" "$BUILD_DIR"
 
-if [[ "${2-}" = "--config-update" ]]; then
-  echo "Config update not implemented"
-  exit 0
-fi
-
 : >build.md
 
 if ((COMPRESSION_LEVEL>9))||((COMPRESSION_LEVEL<0)); then
@@ -61,6 +68,10 @@ command -v zip &>/dev/null||abort "zip not installed. Install: apt install zip"
 find "$TEMP_DIR" -name "changelog.md" -type f -exec : '>' {} \; 2>/dev/null||:
 
 idx=0
+declare -a job_pids=()
+declare -a job_names=()
+failed_jobs=0
+
 for table_name in $(toml_get_table_names); do
   [[ "$table_name" == "PatchSources" ]] && continue
   [[ -z "$table_name" ]] && continue
@@ -72,6 +83,16 @@ for table_name in $(toml_get_table_names); do
 
   if ((idx>=PARALLEL_JOBS)); then
     wait -n
+    # Check if the completed job failed
+    for pid in "${job_pids[@]}"; do
+      if ! kill -0 "$pid" 2>/dev/null; then
+        if ! wait "$pid" 2>/dev/null; then
+          ((failed_jobs++))
+        fi
+        # Remove this PID from tracking
+        job_pids=("${job_pids[@]/$pid}")
+      fi
+    done
     idx=$((idx-1))
   fi
 
@@ -86,8 +107,11 @@ for table_name in $(toml_get_table_names); do
   app_args[table]=$table_name
   app_args[dpi]=$(toml_get "$t" dpi)||app_args[dpi]="nodpi"
 
+  # Validate inputs
   [[ -n "${app_args[excluded_patches]}" && ${app_args[excluded_patches]} != *'"'* ]] && abort "Patch names inside excluded-patches must be quoted"
   [[ -n "${app_args[included_patches]}" && ${app_args[included_patches]} != *'"'* ]] && abort "Patch names inside included-patches must be quoted"
+  validate_version "${app_args[version]}" || abort "Invalid version for '$table_name'"
+  validate_dpi "${app_args[dpi]}"
 
   app_args[uptodown_dlurl]=$(toml_get "$t" uptodown-dlurl) && {
     app_args[uptodown_dlurl]=${app_args[uptodown_dlurl]%/}
@@ -109,23 +133,54 @@ for table_name in $(toml_get_table_names); do
   [[ -z "${app_args[dl_from]-}" ]] && abort "ERROR: No 'apkmirror_dlurl', 'uptodown_dlurl' or 'archive_dlurl' option was set for '$table_name'."
 
   app_args[arch]=$(toml_get "$t" arch)||app_args[arch]="all"
-  if [[ "${app_args[arch]}" != "both" && "${app_args[arch]}" != "all" && ${app_args[arch]} != "arm64-v8a"* && ${app_args[arch]} != "arm-v7a"* ]]; then
-    abort "Wrong arch '${app_args[arch]}' for '$table_name'"
-  fi
+  validate_arch "${app_args[arch]}" || abort "Invalid architecture for '$table_name'"
 
   if [[ "${app_args[arch]}" = both ]]; then
     app_args[table]="$table_name (arm64-v8a)"; app_args[arch]="arm64-v8a"
-    idx=$((idx+1)); build_rv "$(declare -p app_args)" &
+    idx=$((idx+1))
+    build_rv "$(serialize_array app_args)" &
+    job_pids+=($!)
+    job_names+=("$table_name (arm64-v8a)")
+
     app_args[table]="$table_name (arm-v7a)"; app_args[arch]="arm-v7a"
-    if ((idx>=PARALLEL_JOBS)); then wait -n; idx=$((idx-1)); fi
-    idx=$((idx+1)); build_rv "$(declare -p app_args)" &
+    if ((idx>=PARALLEL_JOBS)); then
+      wait -n
+      for pid in "${job_pids[@]}"; do
+        if ! kill -0 "$pid" 2>/dev/null; then
+          if ! wait "$pid" 2>/dev/null; then
+            ((failed_jobs++))
+          fi
+          job_pids=("${job_pids[@]/$pid}")
+        fi
+      done
+      idx=$((idx-1))
+    fi
+    idx=$((idx+1))
+    build_rv "$(serialize_array app_args)" &
+    job_pids+=($!)
+    job_names+=("$table_name (arm-v7a)")
   else
-    idx=$((idx+1)); build_rv "$(declare -p app_args)" &
+    idx=$((idx+1))
+    build_rv "$(serialize_array app_args)" &
+    job_pids+=($!)
+    job_names+=("$table_name")
   fi
 done
 
+# Wait for all remaining jobs and check their exit codes
 wait
+for pid in "${job_pids[@]}"; do
+  [[ -z "$pid" ]] && continue
+  if ! wait "$pid" 2>/dev/null; then
+    ((failed_jobs++))
+  fi
+done
+
 rm -rf temp/tmp.*
+
+if ((failed_jobs > 0)); then
+  epr "⚠️  WARNING: $failed_jobs job(s) failed during the build process"
+fi
 
 if ! find "${BUILD_DIR}" -mindepth 1 -maxdepth 1 -print -quit|grep -q .; then
   abort "All builds failed."
