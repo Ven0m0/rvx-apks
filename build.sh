@@ -23,17 +23,14 @@ fi
 source utils.sh
 declare -F set_prebuilts &>/dev/null && set_prebuilts
 
+# Validate true/false config values
 vtf(){
   if ! isoneof "${1}" "true" "false"; then
     abort "ERROR: '${1}' is not a valid option for '${2}': only true or false is allowed"
   fi
 }
 
-# Check if required tools are available
-command -v jq && echo "✓ jq installed" || echo "✗ jq missing"
-command -v java && echo "✓ java installed" || echo "✗ java missing"
-command -v zip && echo "✓ zip installed" || echo "✗ zip missing"
-
+# Load and validate configuration file
 toml_prep "${1:-config.toml}"||abort "Could not find config file '${1:-config.toml}'\n\tUsage: $0 <config.toml>"
 main_config_t=$(toml_get_table_main)
 
@@ -55,17 +52,23 @@ DEF_RV_BRAND=$(toml_get "$main_config_t" rv-brand)||DEF_RV_BRAND="RVX App"
 
 mkdir -p "$TEMP_DIR" "$BUILD_DIR"
 
+# Initialize build log
 : >build.md
 
+# Validate configuration values
 if ((COMPRESSION_LEVEL>9))||((COMPRESSION_LEVEL<0)); then
-  abort "compression-level must be within 0-9"
+  abort "ERROR: compression-level must be within 0-9 (found: $COMPRESSION_LEVEL)"
 fi
 
-command -v jq &>/dev/null||abort "jq not installed. Install: apt install jq"
-command -v java &>/dev/null||abort "java not installed. Install: apt install openjdk-17-jre"
-command -v zip &>/dev/null||abort "zip not installed. Install: apt install zip"
+# Check for required tools
+pr "Checking required dependencies..."
+command -v jq &>/dev/null||abort "jq not installed. Install with: apt install jq"
+command -v java &>/dev/null||abort "java not installed. Install with: apt install openjdk-17-jre"
+command -v zip &>/dev/null||abort "zip not installed. Install with: apt install zip"
+pr "✓ All dependencies available"
 
-find "$TEMP_DIR" -name "changelog.md" -type f -exec : '>' {} \; 2>/dev/null||:
+# Clean old changelog files
+find "$TEMP_DIR" -name "changelog.md" -type f -delete 2>/dev/null||:
 
 idx=0
 declare -a job_pids=()

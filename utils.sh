@@ -1,70 +1,99 @@
 #!/usr/bin/env bash
+# ================================================================================
 # ReVanced APK Builder - Utility Functions
-# This file contains core utilities for building ReVanced APKs:
-# - TOML configuration parsing
-# - APK downloading from multiple sources (APKMirror, Uptodown, Archive.org)
-# - Patch application and APK optimization
-# - Network operations with retry logic
-# - Input validation and error handling
+# ================================================================================
+# This file contains all core utilities for building ReVanced APKs.
+#
+# MAIN FUNCTIONS:
+#   - Configuration parsing (TOML → JSON)
+#   - APK downloading (APKMirror, Uptodown, Archive.org)
+#   - Patch application and APK optimization
+#   - Network operations with automatic retry logic
+#   - Input validation and error handling
+#
+# FOR BEGINNERS:
+#   - Functions starting with '_' are internal (don't call directly)
+#   - Functions starting with 'get_' fetch data from external sources
+#   - Functions starting with 'dl_' download files
+#   - All network operations retry automatically on failure
+# ================================================================================
+
+# ================================================================================
+# CORE UTILITY FUNCTIONS
+# Basic functions used throughout the build process
+# ================================================================================
 
 declare -F abort &>/dev/null || abort(){ echo "ABORT: $*" >&2; exit 1; }
-declare -F epr &>/dev/null || epr(){ echo -e "$*" >&2; }
-declare -F pr &>/dev/null || pr(){ echo -e "$*"; }
-declare -F log &>/dev/null || log(){ echo -e "$*" >> build.md 2>/dev/null || :; }
-declare -F isoneof &>/dev/null || isoneof(){ local t=$1; shift; for x in "$@"; do [[ "$t" == "$x" ]] && return 0; done; return 1; }
+declare -F epr &>/dev/null || epr(){ echo -e "$*" >&2; }  # Print error (red)
+declare -F pr &>/dev/null || pr(){ echo -e "$*"; }        # Print info (green)
+declare -F log &>/dev/null || log(){ echo -e "$*" >> build.md 2>/dev/null || :; }  # Log to build.md
+declare -F isoneof &>/dev/null || isoneof(){ local t=$1; shift; for x in "$@"; do [[ "$t" == "$x" ]] && return 0; done; return 1; }  # Check if value in list
 
-# Input validation functions
-validate_patch_name(){
-  local name=$1
-  # Allow alphanumeric, spaces, hyphens, underscores, dots, and parentheses
-  if [[ ! "$name" =~ ^[a-zA-Z0-9' ._()'-]+$ ]]; then
-    epr "ERROR: Invalid patch name: '$name'. Only alphanumeric characters, spaces, dots, hyphens, underscores, and parentheses are allowed."
-    return 1
-  fi
-  return 0
-}
+# ================================================================================
+# INPUT VALIDATION FUNCTIONS
+# These functions validate user input from config.toml to prevent errors
+# ================================================================================
 
 validate_version(){
   local ver=$1
-  # Allow semantic versioning, 'auto', 'latest', or 'beta'
+  # Accepts: auto, latest, beta, or semantic versioning (e.g., 19.09.36)
   if [[ "$ver" =~ ^(auto|latest|beta)$ ]] || [[ "$ver" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?([.-][a-zA-Z0-9]+)?$ ]]; then
     return 0
   fi
-  epr "ERROR: Invalid version format: '$ver'. Use 'auto', 'latest', 'beta', or semantic versioning (e.g., 1.2.3)"
+  epr "ERROR: Invalid version '$ver'. Use: 'auto', 'latest', 'beta', or version number (e.g., 19.09.36)"
   return 1
 }
 
 validate_arch(){
   local arch=$1
+  # all: universal APK | both: arm64-v8a + arm-v7a builds | arm64-v8a/arm-v7a: specific arch
   if isoneof "$arch" "all" "both" "arm64-v8a" "arm-v7a"; then
     return 0
   fi
-  epr "ERROR: Invalid architecture: '$arch'. Must be one of: all, both, arm64-v8a, arm-v7a"
+  epr "ERROR: Invalid architecture '$arch'. Valid options: all, both, arm64-v8a, arm-v7a"
   return 1
 }
 
 validate_dpi(){
   local dpi=$1
-  # Allow nodpi, or numeric values, or common DPI values
+  # nodpi: all densities | specific DPI: targets specific screen density
   if [[ "$dpi" == "nodpi" ]] || [[ "$dpi" =~ ^[0-9]+$ ]] || isoneof "$dpi" "ldpi" "mdpi" "hdpi" "xhdpi" "xxhdpi" "xxxhdpi"; then
     return 0
   fi
-  epr "WARNING: Unusual DPI value: '$dpi'. Common values: nodpi, ldpi, mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi, or numeric."
-  return 0  # Don't fail, just warn
+  epr "WARNING: Unusual DPI '$dpi'. Common: nodpi, ldpi, mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi"
+  return 0  # Warn but don't fail - let user decide
 }
 
+# ================================================================================
+# ENVIRONMENT SETUP
+# Initialize build directories and environment variables
+# ================================================================================
+
 declare -F set_prebuilts &>/dev/null || set_prebuilts(){
-  export TEMP_DIR="${TEMP_DIR:-temp}"
-  export BUILD_DIR="${BUILD_DIR:-build}"
-  export LOG_DIR="${LOG_DIR:-logs}"
-  export BIN_DIR="${BIN_DIR:-bin}"
+  # Set up directory structure for build process
+  export TEMP_DIR="${TEMP_DIR:-temp}"        # Temporary files during build
+  export BUILD_DIR="${BUILD_DIR:-build}"     # Final APK output directory
+  export LOG_DIR="${LOG_DIR:-logs}"          # Build logs
+  export BIN_DIR="${BIN_DIR:-bin}"           # Build tools (CLI, patches, etc)
+
   mkdir -p "$TEMP_DIR" "$BUILD_DIR" "$LOG_DIR" "$BIN_DIR" "$BIN_DIR/patchcache" &>/dev/null || :
+
+  # Detect OS and architecture for platform-specific operations
   export OS="${OS:-$(uname -s)}"
   export ARCH="${ARCH:-$(uname -m)}"
+
+  # Set JVM options for optimal performance
   local _default="-Dfile.encoding=UTF-8"
   export JVM_OPTS="${JVM_OPTS:-${JAVA_OPTS:-$_default}}"
+
+  # Add bin directory to PATH for easy tool access
   [[ ":$PATH:" == *":$BIN_DIR:"* ]] || export PATH="$BIN_DIR:$PATH"
 }
+
+# ================================================================================
+# TOML CONFIGURATION PARSING
+# Convert TOML config files to JSON for easy processing with jq
+# ================================================================================
 
 _toml_to_json_with_tq(){
   local file=$1 out=$2
@@ -125,6 +154,11 @@ toml_get(){
   [[ -n "$v" ]] || return 1
   echo "$v"
 }
+# ================================================================================
+# DATA SERIALIZATION UTILITIES
+# Safely pass data between functions and background jobs
+# ================================================================================
+
 # Serialize associative array to JSON (safer than declare -p + eval)
 serialize_array(){
   local -n arr=$1
@@ -162,9 +196,16 @@ join_args(){
   done
   printf '%q ' "${out[@]}" | sed 's/ $//'
 }
+
+# Get highest version from a list (using natural version sorting)
 get_highest_ver(){ sort -V|tail -n1; }
 
-# GitHub API request with retry logic
+# ================================================================================
+# NETWORK OPERATIONS WITH RETRY LOGIC
+# Download files and fetch data from GitHub/APK sources with automatic retries
+# ================================================================================
+
+# GitHub API request with retry logic and rate limit awareness
 gh_req(){
   local url=$1
   local max_attempts=3 attempt=1 delay=2
@@ -257,8 +298,15 @@ get_rv_prebuilts(){
   echo "$cli_jar $patch_jar"
 }
 
-declare -A _APKM_RESP _UPD_RESP _ARCH_RESP
+# ================================================================================
+# APK SOURCE DOWNLOADERS
+# Download stock APKs from APKMirror, Uptodown, and Archive.org
+# Responses are cached in memory to avoid repeated requests
+# ================================================================================
 
+declare -A _APKM_RESP _UPD_RESP _ARCH_RESP  # Cache for web responses
+
+# --- APKMirror Functions ---
 # Fetch and cache APKMirror response with retry logic
 get_apkmirror_resp(){
   local url=$1
@@ -363,22 +411,98 @@ dl_archive(){
   dl_file "$dl" "$out"
 }
 
-# Verify APK signature against known signatures in sig.txt
+# --- Uptodown Functions ---
+get_uptodown_resp(){
+  local url=$1
+  [[ -n "${_UPD_RESP[$url]:-}" ]] && return 0
+
+  local max_attempts=3 attempt=1 delay=2
+  while ((attempt <= max_attempts)); do
+    _UPD_RESP[$url]=$(curl -sL --connect-timeout 30 --max-time 60 "${url}/versions" 2>/dev/null)
+    if [[ -n "${_UPD_RESP[$url]}" ]]; then
+      return 0
+    fi
+    if ((attempt < max_attempts)); then
+      epr "Uptodown request failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
+      sleep "$delay"
+      delay=$((delay * 2))
+    fi
+    ((attempt++))
+  done
+  return 1
+}
+
+get_uptodown_pkg_name(){
+  grep -oP 'package">\K[^<]+' <<<"${_UPD_RESP[$1]}"|head -1
+}
+
+get_uptodown_vers(){
+  grep -oP 'data-version="\K[^"]+' <<<"${_UPD_RESP[$1]}"
+}
+
+dl_uptodown(){
+  local url=$1 ver=$2 out=$3
+  local dl; dl=$(curl -sL "${url}/download/${ver}"|grep -oP 'data-url="\K[^"]+')
+  [[ -z "$dl" ]] && return 1
+  dl_file "$dl" "$out"
+}
+
+# --- Archive.org Functions ---
+get_archive_resp(){
+  local url=$1
+  [[ -n "${_ARCH_RESP[$url]:-}" ]] && return 0
+
+  local max_attempts=3 attempt=1 delay=2
+  while ((attempt <= max_attempts)); do
+    _ARCH_RESP[$url]=$(curl -sL --connect-timeout 30 --max-time 60 "$url" 2>/dev/null)
+    if [[ -n "${_ARCH_RESP[$url]}" ]]; then
+      return 0
+    fi
+    if ((attempt < max_attempts)); then
+      epr "Archive.org request failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
+      sleep "$delay"
+      delay=$((delay * 2))
+    fi
+    ((attempt++))
+  done
+  return 1
+}
+
+get_archive_pkg_name(){
+  basename "$1"|sed 's/^apks\///'
+}
+
+get_archive_vers(){
+  grep -oP '\d+\.\d+\.\d+[^<]*\.apk' <<<"${_ARCH_RESP[$1]}"|sed 's/\.apk$//'|sort -uV
+}
+
+dl_archive(){
+  local url=$1 ver=$2 out=$3
+  local dl="${url}/${ver}.apk"
+  dl_file "$dl" "$out"
+}
+
+# ================================================================================
+# APK SIGNATURE VERIFICATION
+# Verify downloaded APKs against known good signatures in sig.txt
+# ================================================================================
+
+# Verify APK signature against known signatures (optional security check)
 check_sig(){
   local apk=$1 pkg=$2
   local sig_file="sig.txt"
 
-  # Skip if sig.txt doesn't exist
+  # Skip if sig.txt doesn't exist (verification is optional)
   [[ ! -f "$sig_file" ]] && return 0
 
-  # Calculate SHA256 hash of the APK
+  # Calculate SHA256 hash of the downloaded APK
   local actual_hash
   if command -v sha256sum &>/dev/null; then
     actual_hash=$(sha256sum "$apk" 2>/dev/null | awk '{print $1}')
   elif command -v shasum &>/dev/null; then
     actual_hash=$(shasum -a 256 "$apk" 2>/dev/null | awk '{print $1}')
   else
-    epr "WARNING: No SHA256 tool available (sha256sum/shasum), skipping signature verification"
+    epr "WARNING: No SHA256 tool available, skipping signature verification"
     return 0
   fi
 
@@ -391,7 +515,7 @@ check_sig(){
   # If no signature found in sig.txt, skip verification
   [[ -z "$expected_hash" ]] && return 0
 
-  # Compare hashes
+  # Compare hashes - warn if mismatch but don't fail build
   if [[ "$expected_hash" == "$actual_hash" ]]; then
     pr "✓ Signature verified for $pkg"
     return 0
@@ -399,17 +523,21 @@ check_sig(){
     epr "⚠️  WARNING: Signature mismatch for $pkg!"
     epr "   Expected: $expected_hash"
     epr "   Actual:   $actual_hash"
-    epr "   This may indicate the APK has been modified or is from a different source."
-    # Don't fail the build, just warn
-    return 0
+    epr "   This may indicate the APK is from a different source or version."
+    return 0  # Don't fail - just warn
   fi
 }
 
+# ================================================================================
+# PATCH MANAGEMENT
+# Download and combine patches from multiple sources (RVX, Privacy, etc.)
+# ================================================================================
+
 # Combine patches from multiple sources into a single JAR
-# This enables using patches from ReVanced Extended, Privacy Patches, and others together
+# Enables using patches from ReVanced Extended + Privacy Patches together
 # Args:
-#   $1 - Table name (app configuration)
-#   $2 - Comma-separated patch sources config string
+#   $1 - Table name (app configuration from config.toml)
+#   $2 - Comma-separated patch sources (e.g., "privacy,rvx")
 # Side effects: Sets rv_cli_jar and rv_patches_jar variables
 # Returns: 0 on success, 1 on failure
 get_multi_source_patches(){
@@ -460,11 +588,17 @@ get_multi_source_patches(){
   rv_cli_jar=$first_cli; rv_patches_jar="$combined"; return 0
 }
 
+# ================================================================================
+# APK PATCHING AND OPTIMIZATION
+# Core functions for applying patches and optimizing final APKs
+# ================================================================================
+
 # Apply ReVanced patches to a stock APK
+# This is the main patching function - calls ReVanced CLI with all options
 # Args:
-#   $1 - Stock APK file path
+#   $1 - Stock APK file path (unmodified from APKMirror/etc)
 #   $2 - Output patched APK file path
-#   $3 - Additional patcher arguments string
+#   $3 - Additional patcher arguments string (patches to include/exclude)
 #   $4 - ReVanced CLI JAR path
 #   $5 - ReVanced patches JAR path
 # Returns: 0 on success, 1 on failure
@@ -578,18 +712,27 @@ optimize_apk(){
   return 0
 }
 
+# ================================================================================
+# MAIN BUILD ORCHESTRATION
+# Coordinates the entire build process for a single app
+# ================================================================================
+
 # Main build function - orchestrates the entire APK patching process
-# This function:
-#   1. Deserializes build arguments from JSON
-#   2. Downloads patches from configured sources
-#   3. Determines target APK version (auto-detect or specific)
-#   4. Downloads stock APK from APKMirror/Uptodown/Archive.org
-#   5. Applies ReVanced patches
-#   6. Optimizes the patched APK
-#   7. Moves final APK to build directory
+# This is the top-level function called for each app in config.toml
+#
+# Build Process:
+#   1. Deserialize build config from JSON
+#   2. Download ReVanced CLI and patches from GitHub
+#   3. Determine target APK version (auto-detect or use specified)
+#   4. Download stock APK from APKMirror/Uptodown/Archive.org
+#   5. Verify APK signature (optional)
+#   6. Apply ReVanced patches with configured options
+#   7. Optimize APK (strip resources, compress, zipalign)
+#   8. Move final APK to build/ directory
+#
 # Args:
-#   $1 - JSON string containing build configuration (serialized associative array)
-# Returns: 0 on success (or graceful skip), non-zero on fatal error
+#   $1 - JSON string containing build configuration
+# Returns: 0 on success or graceful skip, non-zero on fatal error
 build_rv(){
   # Safely deserialize arguments from JSON instead of using eval
   local json_args="$1"
