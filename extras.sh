@@ -8,32 +8,59 @@ command="${1:-}"
 
 case "$command" in
   separate-config)
-    # Extract a section from TOML config file
+    # Extract a section from TOML config file along with global config and PatchSources
     # Usage: ./extras.sh separate-config <config_file> <key_to_match> <output_file>
-    
+
     if [[ $# -ne 4 ]]; then
       echo "Usage: $0 separate-config <config_file> <key_to_match> <output_file>"
       exit 1
     fi
-    
+
     config_file="$2"
     key_to_match="$3"
     output_file="$4"
-    
-    section_content=$(awk -v key="$key_to_match" '
-      BEGIN { print "[" key "]" }
-      /^\[/ && tolower($1) == "[" tolower(key) "]" { in_section = 1; next }
-      /^\[/ { in_section = 0 }
-      in_section == 1
+
+    # First, extract global settings (everything before the first section)
+    global_content=$(awk '
+      /^[[:space:]]*\[/ { exit }
+      /^[[:space:]]*#/ || /^[[:space:]]*$/ { next }
+      { print }
     ' "$config_file")
-    
+
+    # Extract PatchSources section if it exists
+    patch_sources_content=$(awk '
+      /^\[PatchSources\./ { in_section = 1 }
+      /^\[/ && !/^\[PatchSources\./ && in_section == 1 { exit }
+      in_section == 1 { print }
+    ' "$config_file")
+
+    # Extract the specific app section
+    section_content=$(awk -v key="$key_to_match" '
+      /^\[/ && tolower($1) == "[" tolower(key) "]" { in_section = 1; print; next }
+      /^\[/ && in_section == 1 { exit }
+      in_section == 1 { print }
+    ' "$config_file")
+
     if [[ -z "$section_content" ]]; then
       echo "Key '$key_to_match' not found in the config file."
       exit 1
     fi
-    
-    echo "$section_content" > "$output_file"
-    echo "Section for '$key_to_match' written to $output_file"
+
+    # Write combined config
+    {
+      echo "# ---- Global Settings ----"
+      echo "$global_content"
+      echo ""
+      if [[ -n "$patch_sources_content" ]]; then
+        echo "# ---- Patch Sources ----"
+        echo "$patch_sources_content"
+        echo ""
+      fi
+      echo "# ---- App Configuration ----"
+      echo "$section_content"
+    } > "$output_file"
+
+    echo "Section for '$key_to_match' written to $output_file with global config and patch sources"
     ;;
 
   combine-logs)

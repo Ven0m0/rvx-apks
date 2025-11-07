@@ -70,7 +70,7 @@ jobs:
 
       - name: Cache downloaded APKs
         uses: actions/cache@v4
-        if: contains(fromJSON('["YouTube", "Music"]'), matrix.id)
+        if: contains(fromJSON('["YouTube", "Music", "Spotify"]'), matrix.id)
         with:
           path: |
             temp/*.apk

@@ -17,7 +17,7 @@ declare -F isoneof &>/dev/null || isoneof(){ local t=$1; shift; for x in "$@"; d
 validate_patch_name(){
   local name=$1
   # Allow alphanumeric, spaces, hyphens, underscores, dots, and parentheses
-  if [[ ! "$name" =~ ^[a-zA-Z0-9\ ._()'-]+$ ]]; then
+  if [[ ! "$name" =~ ^[a-zA-Z0-9' ._()'-]+$ ]]; then
     epr "ERROR: Invalid patch name: '$name'. Only alphanumeric characters, spaces, dots, hyphens, underscores, and parentheses are allowed."
     return 1
   fi
@@ -68,12 +68,26 @@ declare -F set_prebuilts &>/dev/null || set_prebuilts(){
 
 _toml_to_json_with_tq(){
   local file=$1 out=$2
-  command -v tq &>/dev/null && { tq -f "$file" >"$out"; return $?; }
+  # Try tq with JSON output format
+  if command -v tq &>/dev/null; then
+    if tq -f "$file" --format json . >"$out" 2>/dev/null && jq -e . "$out" &>/dev/null; then
+      return 0
+    fi
+  fi
+  # Try prebuilt tq binaries
   local arch; arch=$(uname -m)
   local tq_path="$BIN_DIR/toml/tq-${arch}"
-  [[ -x "$tq_path" ]] && { "$tq_path" -f "$file" >"$out"; return $?; }
+  if [[ -x "$tq_path" ]]; then
+    if "$tq_path" -f "$file" --format json . >"$out" 2>/dev/null && jq -e . "$out" &>/dev/null; then
+      return 0
+    fi
+  fi
   for tp in "$BIN_DIR/toml/tq" "$BIN_DIR/toml/tq-arm64" "$BIN_DIR/toml/tq-x86_64"; do
-    [[ -x "$tp" ]] && { "$tp" -f "$file" >"$out"; return $?; }
+    if [[ -x "$tp" ]]; then
+      if "$tp" -f "$file" --format json . >"$out" 2>/dev/null && jq -e . "$out" &>/dev/null; then
+        return 0
+      fi
+    fi
   done
   return 127
 }
