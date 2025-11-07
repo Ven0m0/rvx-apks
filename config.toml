@@ -9,12 +9,7 @@ build-mode = "apk"
 arch = "arm64-v8a"
 
 # Optimized JVM flags for Java 21+ with better performance
-# - G1GC: Better for large heaps and low pause times
-# - MaxGCPauseMillis: Target max pause time for smoother builds
-# - UseStringDeduplication: Reduce memory usage from duplicate strings
-# - MaxRAMPercentage: Use up to 75% of available RAM
-# - CompressedOops: Reduce memory footprint on 64-bit systems
-jvm-flags = "-Dfile.encoding=UTF-8 -Djdk.util.zip.disableZip64ExtraFieldValidation=true -Djdk.nio.zipfs.allowDotZipEntry=true -Xms512M -Xmx4G -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:+UseStringDeduplication -XX:+OptimizeStringConcat -XX:MaxRAMPercentage=75.0 -XX:+UseCompressedOops -XX:+TieredCompilation"
+jvm-flags = "-Dfile.encoding=UTF-8 -Djdk.util.zip.disableZip64ExtraFieldValidation=true -Djdk.nio.zipfs.allowDotZipEntry=true -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+OptimizeStringConcat -XX:MaxRAMPercentage=75.0 -XX:+UseCompressedOops -XX:+TieredCompilation"
 
 # APK Optimization: Aggressive settings for smaller, faster APKs
 optimize-apk = true
