@@ -471,14 +471,29 @@ get_multi_source_patches(){
 patch_apk(){
   local stock=$1 out=$2 args_str=$3 cli=$4 ptch=$5
   local -a cmd=(java ${JVM_OPTS:-} -jar "$cli" patch -b "$ptch" -o "$out")
+
+  # Add keystore for proper signing if it exists
+  if [[ -f "ks.keystore" ]]; then
+    cmd+=(--keystore "ks.keystore")
+  fi
+
+  # Add options.json for patch configuration if it exists
+  if [[ -f "options.json" ]]; then
+    cmd+=(--options "options.json")
+  fi
+
+  # Add purge flag to remove unnecessary files from patched APK
+  cmd+=(--purge)
+
   eval "cmd+=($args_str)"
   cmd+=("$stock")
   "${cmd[@]}" 2>&1||return 1
   return 0
 }
 
-# Optimize APK by stripping unwanted resources (languages, densities)
-# This reduces APK size by removing resources for unused languages and screen densities
+# Optimize APK by stripping unwanted resources (languages, densities) and compressing
+# This reduces APK size by removing resources for unused languages and screen densities,
+# removing unnecessary files, and recompressing with maximum compression
 # Args:
 #   $1 - Input APK file path
 #   $2 - Output optimized APK file path
@@ -486,36 +501,80 @@ patch_apk(){
 # Returns: 0 on success, 1 on failure (falls back to copying input)
 optimize_apk(){
   local inp=$1 out=$2 tbl=$3
-  local opt_en opt_lang opt_dens use_za tmpd
+  local opt_en opt_lang opt_dens use_za tmpd comp_level
   tmpd="${TEMP_DIR}/opt-$$"
   opt_en=$(toml_get "$tbl" optimize-apk)||opt_en=false
   if [[ "$opt_en" != true ]]; then cp -f "$inp" "$out"; return 0; fi
+
   opt_lang=$(toml_get "$tbl" optimize-languages)||opt_lang=""
   opt_dens=$(toml_get "$tbl" optimize-densities)||opt_dens=""
-  use_za=$(toml_get "$tbl" zipalign)||use_za=false
+  use_za=$(toml_get "$tbl" zipalign)||use_za=true  # Default to true for better performance
+  comp_level=$(toml_get "$tbl" compression-level)||comp_level="${COMPRESSION_LEVEL:-9}"
+
   mkdir -p "$tmpd"
+  pr "  Optimizing APK: stripping resources and recompressing..."
   unzip -q "$inp" -d "$tmpd" &>/dev/null||{ rm -rf "$tmpd"; cp -f "$inp" "$out"; return 1; }
+
+  # Remove language-specific resources (keep only specified languages)
   if [[ -n "$opt_lang" ]]; then
+    local removed_langs=0
     while read -r d; do
       local keep=false
-      for lang in ${opt_lang//,/ }; do [[ "$d" =~ values-${lang}$ ]] && { keep=true; break; }; done
-      [[ "$keep" = false ]] && rm -rf "$d"
+      for lang in ${opt_lang//,/ }; do
+        [[ "$d" =~ values-${lang}$ || "$d" =~ values$ ]] && { keep=true; break; }
+      done
+      if [[ "$keep" = false ]]; then
+        rm -rf "$d"
+        ((removed_langs++))
+      fi
     done < <(find "$tmpd/res" -type d -name "values-*" 2>/dev/null)
+    [[ $removed_langs -gt 0 ]] && pr "    Removed $removed_langs language resource directories"
   fi
+
+  # Remove density-specific resources (keep only specified densities)
   if [[ -n "$opt_dens" ]]; then
     local -a keepdens; IFS=',' read -ra keepdens <<<"$opt_dens"
+    local removed_dens=0
     while read -r d; do
       local base keep=false; base=$(basename "$d")
-      for den in "${keepdens[@]}"; do [[ "$base" == *"$den"* ]] && { keep=true; break; }; done
-      [[ "$keep" = false ]] && rm -rf "$d"
-    done < <(find "$tmpd/res" -type d \( -name "drawable-*" -o -name "mipmap-*" -o -name "values-*" \) 2>/dev/null)
+      for den in "${keepdens[@]}"; do
+        [[ "$base" == *"$den"* || "$base" =~ ^(drawable|mipmap)$ ]] && { keep=true; break; }
+      done
+      if [[ "$keep" = false ]]; then
+        rm -rf "$d"
+        ((removed_dens++))
+      fi
+    done < <(find "$tmpd/res" -type d \( -name "drawable-*" -o -name "mipmap-*" \) 2>/dev/null)
+    [[ $removed_dens -gt 0 ]] && pr "    Removed $removed_dens density resource directories"
   fi
-  (cd "$tmpd" && zip -qr "$out" .)||{ rm -rf "$tmpd"; cp -f "$inp" "$out"; return 1; }
+
+  # Remove unnecessary files to reduce APK size
+  find "$tmpd" -type f \( -name "*.kotlin_*" -o -name "*.version" -o -name "*.properties" \) -delete 2>/dev/null
+
+  # Recompress with maximum compression for smaller APK size
+  (cd "$tmpd" && zip -q -r -"$comp_level" "$out" .)||{ rm -rf "$tmpd"; cp -f "$inp" "$out"; return 1; }
   rm -rf "$tmpd"
-  if [[ "$use_za" = true ]] && command -v zipalign &>/dev/null; then
+
+  # Zipalign for optimal performance (aligns data on 4-byte boundaries)
+  if [[ "$use_za" = true ]]; then
     local aligned="${out}.aligned"
-    zipalign -f 4 "$out" "$aligned" &>/dev/null && mv -f "$aligned" "$out"
+    if command -v zipalign &>/dev/null; then
+      zipalign -f 4 "$out" "$aligned" &>/dev/null && mv -f "$aligned" "$out" && pr "    Zipaligned APK (4-byte alignment)"
+    elif [[ -x "bin/aapt2/aapt2-$(uname -m)" ]]; then
+      # Fallback: use aapt2 if available (not ideal but better than nothing)
+      pr "    Note: zipalign not available, APK alignment skipped"
+    fi
   fi
+
+  # Report optimization results
+  local orig_size opt_size reduction
+  orig_size=$(stat -c%s "$inp" 2>/dev/null || stat -f%z "$inp" 2>/dev/null || echo "0")
+  opt_size=$(stat -c%s "$out" 2>/dev/null || stat -f%z "$out" 2>/dev/null || echo "0")
+  if [[ $orig_size -gt 0 && $opt_size -gt 0 && $opt_size -lt $orig_size ]]; then
+    reduction=$(( (orig_size - opt_size) * 100 / orig_size ))
+    pr "    APK size: $(numfmt --to=iec $orig_size 2>/dev/null || echo "${orig_size}B") → $(numfmt --to=iec $opt_size 2>/dev/null || echo "${opt_size}B") (${reduction}% smaller)"
+  fi
+
   return 0
 }
 
