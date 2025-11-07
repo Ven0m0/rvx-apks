@@ -18,6 +18,24 @@
     ]
   },
   {
+    "patchName": "Custom branding name for YouTube",
+    "options": [
+      {
+        "key": "appName",
+        "value": "RVX YouTube"
+      }
+    ]
+  },
+  {
+    "patchName": "Custom branding name for YouTube Music",
+    "options": [
+      {
+        "key": "appName",
+        "value": "RVX Music"
+      }
+    ]
+  },
+  {
     "patchName": "Custom branding name for Reddit",
     "options": [
       {
@@ -89,6 +107,28 @@
       {
         "key": "packageNameYouTubeMusic",
         "value": "app.rvx.android.apps.youtube.music"
+      }
+    ]
+  },
+  {
+    "patchName": "Theme",
+    "options": [
+      {
+        "key": "darkThemeBackgroundColor",
+        "value": "@android:color/black"
+      },
+      {
+        "key": "lightThemeBackgroundColor",
+        "value": "@android:color/white"
+      }
+    ]
+  },
+  {
+    "patchName": "Settings",
+    "options": [
+      {
+        "key": "RVXSettings",
+        "value": true
       }
     ]
   }
