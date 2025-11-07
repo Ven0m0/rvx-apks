@@ -1,12 +1,12 @@
-#!/usr/bin/env bash
+#!/data/data/com.termux/files/usr/bin/env bash
 # ReVanced APK Builder for Termux (Android)
 # This script sets up and runs the builder directly on Android devices
 
 set -euo pipefail
 
-pr() { echo -e "\033[0;32m[+] ${1}\033[0m"; }
-epr() { echo -e "\033[0;31m[!] ${1}\033[0m" >&2; }
-ask() {
+pr(){ echo -e "\033[0;32m[+] ${1}\033[0m"; }
+epr(){ echo -e "\033[0;31m[!] ${1}\033[0m" >&2; }
+ask(){
 	local y
 	for ((n = 0; n < 3; n++)); do
 		pr "$1 [y/n]"
