@@ -23,11 +23,10 @@
 # Basic functions used throughout the build process
 # ================================================================================
 
-declare -F abort &>/dev/null || abort(){ echo "ABORT: $*" >&2; exit 1; }
-declare -F epr &>/dev/null || epr(){ echo -e "$*" >&2; }  # Print error (red)
-declare -F pr &>/dev/null || pr(){ echo -e "$*"; }        # Print info (green)
-declare -F log &>/dev/null || log(){ echo -e "$*" >> build.md 2>/dev/null || :; }  # Log to build.md
-declare -F isoneof &>/dev/null || isoneof(){ local t=$1; shift; for x in "$@"; do [[ "$t" == "$x" ]] && return 0; done; return 1; }  # Check if value in list
+abort(){ echo "ABORT: $*" >&2; exit 1; }
+epr(){ echo -e "$*" >&2; }
+pr(){ echo -e "$*"; }
+log(){ echo -e "$*" >> build.md 2>/dev/null || :; }
 
 # ================================================================================
 # INPUT VALIDATION FUNCTIONS
@@ -35,33 +34,24 @@ declare -F isoneof &>/dev/null || isoneof(){ local t=$1; shift; for x in "$@"; d
 # ================================================================================
 
 validate_version(){
-  local ver=$1
   # Accepts: auto, latest, beta, or semantic versioning (e.g., 19.09.36)
-  if [[ "$ver" =~ ^(auto|latest|beta)$ ]] || [[ "$ver" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?([.-][a-zA-Z0-9]+)?$ ]]; then
-    return 0
-  fi
-  epr "ERROR: Invalid version '$ver'. Use: 'auto', 'latest', 'beta', or version number (e.g., 19.09.36)"
-  return 1
+  [[ "$1" =~ ^(auto|latest|beta|[0-9]+\.[0-9]+(\.[0-9]+)?([.-][a-zA-Z0-9]+)?)$ ]] || {
+    epr "ERROR: Invalid version '$1'. Use: auto, latest, beta, or version number (e.g., 19.09.36)"
+    return 1
+  }
 }
 
 validate_arch(){
-  local arch=$1
-  # all: universal APK | both: arm64-v8a + arm-v7a builds | arm64-v8a/arm-v7a: specific arch
-  if isoneof "$arch" "all" "both" "arm64-v8a" "arm-v7a"; then
-    return 0
-  fi
-  epr "ERROR: Invalid architecture '$arch'. Valid options: all, both, arm64-v8a, arm-v7a"
-  return 1
+  # all: universal APK | both: arm64-v8a + arm-v7a builds | specific arch
+  [[ "$1" =~ ^(all|both|arm64-v8a|arm-v7a)$ ]] || {
+    epr "ERROR: Invalid architecture '$1'. Valid: all, both, arm64-v8a, arm-v7a"
+    return 1
+  }
 }
 
 validate_dpi(){
-  local dpi=$1
   # nodpi: all densities | specific DPI: targets specific screen density
-  if [[ "$dpi" == "nodpi" ]] || [[ "$dpi" =~ ^[0-9]+$ ]] || isoneof "$dpi" "ldpi" "mdpi" "hdpi" "xhdpi" "xxhdpi" "xxxhdpi"; then
-    return 0
-  fi
-  epr "WARNING: Unusual DPI '$dpi'. Common: nodpi, ldpi, mdpi, hdpi, xhdpi, xxhdpi, xxxhdpi"
-  return 0  # Warn but don't fail - let user decide
+  [[ "$1" =~ ^(nodpi|[0-9]+|[lmhx]+dpi|xxhdpi|xxxhdpi)$ ]] || epr "WARNING: Unusual DPI '$1'"
 }
 
 # ================================================================================
@@ -69,25 +59,18 @@ validate_dpi(){
 # Initialize build directories and environment variables
 # ================================================================================
 
-declare -F set_prebuilts &>/dev/null || set_prebuilts(){
+set_prebuilts(){
   # Set up directory structure for build process
-  export TEMP_DIR="${TEMP_DIR:-temp}"        # Temporary files during build
-  export BUILD_DIR="${BUILD_DIR:-build}"     # Final APK output directory
-  export LOG_DIR="${LOG_DIR:-logs}"          # Build logs
-  export BIN_DIR="${BIN_DIR:-bin}"           # Build tools (CLI, patches, etc)
+  export TEMP_DIR=${TEMP_DIR:-temp}          # Temporary files during build
+  export BUILD_DIR=${BUILD_DIR:-build}       # Final APK output directory
+  export LOG_DIR=${LOG_DIR:-logs}            # Build logs
+  export BIN_DIR=${BIN_DIR:-bin}             # Build tools (CLI, patches, etc)
+  export OS=${OS:-$(uname -s)}               # Operating system
+  export ARCH=${ARCH:-$(uname -m)}           # CPU architecture
+  export JVM_OPTS="${JVM_OPTS:-${JAVA_OPTS:--Dfile.encoding=UTF-8}}"
 
-  mkdir -p "$TEMP_DIR" "$BUILD_DIR" "$LOG_DIR" "$BIN_DIR" "$BIN_DIR/patchcache" &>/dev/null || :
-
-  # Detect OS and architecture for platform-specific operations
-  export OS="${OS:-$(uname -s)}"
-  export ARCH="${ARCH:-$(uname -m)}"
-
-  # Set JVM options for optimal performance
-  local _default="-Dfile.encoding=UTF-8"
-  export JVM_OPTS="${JVM_OPTS:-${JAVA_OPTS:-$_default}}"
-
-  # Add bin directory to PATH for easy tool access
-  [[ ":$PATH:" == *":$BIN_DIR:"* ]] || export PATH="$BIN_DIR:$PATH"
+  mkdir -p "$TEMP_DIR" "$BUILD_DIR" "$LOG_DIR" "$BIN_DIR/patchcache"
+  [[ ":$PATH:" != *":$BIN_DIR:"* ]] && export PATH="$BIN_DIR:$PATH"
 }
 
 # ================================================================================
@@ -135,25 +118,20 @@ json.dump(data,sys.stdout,ensure_ascii=False)
 PY
 }
 toml_prep(){
-  local file=${1:-config.toml}
-  [[ -f "$file" ]] || return 1
-  mkdir -p "$TEMP_DIR" &>/dev/null || :
+  [[ -f "${1:-config.toml}" ]] || return 1
+  mkdir -p "$TEMP_DIR"
   local out="$TEMP_DIR/config.json"
-  if ! _toml_to_json_with_tq "$file" "$out"; then
-    _toml_to_json_with_python "$file" "$out" || { epr "TOML parser unavailable"; return 1; }
-  fi
+  _toml_to_json_with_tq "${1:-config.toml}" "$out" || _toml_to_json_with_python "${1:-config.toml}" "$out" || {
+    epr "TOML parser unavailable"
+    return 1
+  }
   export TOML_JSON="$out"
   [[ -s "$TOML_JSON" ]]
 }
-toml_get_table_main(){ echo "."; }
-toml_get_table(){ local n=$1; printf '.%s' "${n//./\\.}"; }
+
+toml_get_table(){ printf '.%s' "${1//./\\.}"; }
 toml_get_table_names(){ jq -r 'to_entries|map(select(.value|type=="object"))|.[].key' "$TOML_JSON"; }
-toml_get(){
-  local tbl=$1 key=$2 v
-  v=$(jq -r "${tbl}|.[\"$key\"]//empty" "$TOML_JSON")
-  [[ -n "$v" ]] || return 1
-  echo "$v"
-}
+toml_get(){ jq -r "${1}|.[\"$2\"]//empty" "$TOML_JSON"; }
 # ================================================================================
 # DATA SERIALIZATION UTILITIES
 # Safely pass data between functions and background jobs
@@ -197,8 +175,8 @@ join_args(){
   printf '%q ' "${out[@]}" | sed 's/ $//'
 }
 
-# Get highest version from a list (using natural version sorting)
-get_highest_ver(){ sort -V|tail -n1; }
+# Get highest version from list (natural sort)
+get_highest_ver(){ sort -V | tail -n1; }
 
 # ================================================================================
 # NETWORK OPERATIONS WITH RETRY LOGIC
@@ -207,33 +185,16 @@ get_highest_ver(){ sort -V|tail -n1; }
 
 # GitHub API request with retry logic and rate limit awareness
 gh_req(){
-  local url=$1
-  local max_attempts=3 attempt=1 delay=2
+  [[ -z "${GITHUB_TOKEN:-}" ]] && epr "WARNING: GITHUB_TOKEN not set. Rate limit: 60/hr vs 5000/hr with token"
 
-  # Warn if GITHUB_TOKEN is not set
-  if [[ -z "${GITHUB_TOKEN:-}" ]]; then
-    epr "WARNING: GITHUB_TOKEN not set. API rate limit: 60 requests/hour (vs 5000 with token)"
-  fi
-
-  while ((attempt <= max_attempts)); do
-    local response
-    response=$(curl -sL -H "Authorization: token ${GITHUB_TOKEN:-}" "$url" 2>&1)
-    local exit_code=$?
-
-    if [[ $exit_code -eq 0 && -n "$response" ]]; then
-      echo "$response"
-      return 0
-    fi
-
-    if ((attempt < max_attempts)); then
-      epr "GitHub request failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
-      sleep "$delay"
-      delay=$((delay * 2))
-    fi
-    ((attempt++))
+  local delay=2
+  for attempt in {1..3}; do
+    local response=$(curl -sL -H "Authorization: token ${GITHUB_TOKEN:-}" "$1" 2>&1)
+    [[ -n "$response" ]] && { echo "$response"; return 0; }
+    (( attempt < 3 )) && { epr "GitHub request failed (attempt $attempt/3), retry in ${delay}s..."; sleep "$delay"; (( delay *= 2 )); }
   done
 
-  epr "ERROR: GitHub request failed after $max_attempts attempts: $url"
+  epr "ERROR: GitHub request failed after 3 attempts: $1"
   return 1
 }
 
