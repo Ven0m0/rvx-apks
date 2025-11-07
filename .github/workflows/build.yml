@@ -23,17 +23,17 @@ jobs:
           - id: "Music"
           # Uncomment these when enabling in config.toml:
           # - id: "Reddit"
-          # - id: "Spotify"
+          - id: "Spotify"
           # - id: "TikTok"
           # - id: "X"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          fetch-depth: 1  # Shallow clone for faster checkout
-          submodules: false
+          fetch-depth: 0
+          submodules: true
 
-      - name: Set up Java 21 with optimizations
+      - name: Set up Java 21
         uses: actions/setup-java@v5
         with:
           distribution: "temurin"
@@ -41,7 +41,7 @@ jobs:
           cache: "maven"  # Enable Java dependency caching
         env:
           # Pass JVM options from config to the build
-          JAVA_TOOL_OPTIONS: "-Dfile.encoding=UTF-8"
+          JAVA_TOOL_OPTIONS: "-Dfile.encoding=UTF-8 -Djdk.util.zip.disableZip64ExtraFieldValidation=true -Djdk.nio.zipfs.allowDotZipEntry=true -XX:+UseStringDeduplication -XX:+OptimizeStringConcat -XX:+UseCompressedOops -XX:+TieredCompilation"
 
       - name: Cache ReVanced prebuilts (CLI and patches)
         uses: actions/cache@v4
@@ -82,7 +82,6 @@ jobs:
         run: |
           chmod +x extras.sh build.sh
           ./extras.sh separate-config config.toml ${{ matrix.id }} sep_config.toml
-          echo "=== Generated config for ${{ matrix.id }} ==="
           cat sep_config.toml
 
       - name: Build APKs with optimizations
@@ -101,9 +100,9 @@ jobs:
           name: apks-${{ matrix.id }}
           path: ./build/*.apk
           if-no-files-found: warn
-          retention-days: 7
-          compression-level: 6  # Balance between speed and size
-
+          retention-days: 3
+          compression-level: 6
+  
       - name: Upload build log as artifact
         uses: actions/upload-artifact@v4
         if: always()
@@ -112,7 +111,7 @@ jobs:
           path: build.md
           if-no-files-found: warn
           retention-days: 1
-          compression-level: 9  # Max compression for logs
+          compression-level: 9
 
   release:
     needs: run
@@ -132,8 +131,7 @@ jobs:
           if gh api repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts --jq '.artifacts[] | select(.name | startswith("apks-")) | .name' | grep -q .; then
             echo "has_artifacts=true" >> $GITHUB_OUTPUT
           else
-            echo "has_artifacts=false" >> $GITHUB_OUTPUT
-            exit 1
+            echo "has_artifacts=false" >> $GITHUB_OUTPUT; exit 1
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -145,7 +143,7 @@ jobs:
 
       - name: Download all APKs
         if: steps.check_artifacts.outputs.has_artifacts == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: apks-*
           path: all-apks
@@ -153,7 +151,7 @@ jobs:
 
       - name: Download all build logs
         if: steps.check_artifacts.outputs.has_artifacts == 'true'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           pattern: build-log-*
           path: build-logs
