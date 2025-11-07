@@ -17,7 +17,7 @@ declare -F isoneof &>/dev/null || isoneof(){ local t=$1; shift; for x in "$@"; d
 validate_patch_name(){
   local name=$1
   # Allow alphanumeric, spaces, hyphens, underscores, dots, and parentheses
-  if [[ ! "$name" =~ ^[a-zA-Z0-9' ._()'-]+$ ]]; then
+  if [[ ! "$name" =~ ^[a-zA-Z0-9 ._()'-]+$ ]]; then
     epr "ERROR: Invalid patch name: '$name'. Only alphanumeric characters, spaces, dots, hyphens, underscores, and parentheses are allowed."
     return 1
   fi
