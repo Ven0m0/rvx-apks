@@ -94,7 +94,7 @@ jobs:
           PARALLEL_JOBS: 2
 
       - name: Upload APKs as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: apks-${{ matrix.id }}
@@ -104,7 +104,7 @@ jobs:
           compression-level: 6
   
       - name: Upload build log as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: build-log-${{ matrix.id }}
