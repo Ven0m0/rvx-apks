@@ -53,6 +53,33 @@ pr "✓ All dependencies available"
 
 find "$TEMP_DIR" -name "changelog.md" -type f -delete 2>/dev/null || :
 
+# ================================================================================
+# JOB MANAGEMENT FUNCTIONS
+# Helper functions for parallel build job tracking
+# ================================================================================
+
+# Wait for any background job and update tracking arrays
+# Updates: idx, failed_jobs, job_pids (removes completed jobs)
+wait_for_job_slot(){
+  wait -n
+  local pid
+  for pid in "${job_pids[@]}"; do
+    # Check if process is still running
+    if ! kill -0 "$pid" 2>/dev/null; then
+      # Process completed, check exit status
+      wait "$pid" 2>/dev/null || (( failed_jobs++ ))
+      # Remove from tracking array
+      job_pids=("${job_pids[@]/$pid}")
+    fi
+  done
+  (( idx-- ))
+}
+
+# ================================================================================
+# BUILD ORCHESTRATION
+# Main build loop with parallel job management
+# ================================================================================
+
 # Build jobs tracking
 idx=0 failed_jobs=0
 declare -a job_pids=() job_names=()
@@ -66,15 +93,7 @@ for table_name in $(toml_get_table_names); do
   [[ "$enabled" = false ]] && continue
 
   # Wait for job slot if needed
-  if (( idx >= PARALLEL_JOBS )); then
-    wait -n
-    for pid in "${job_pids[@]}"; do
-      kill -0 "$pid" 2>/dev/null && continue
-      wait "$pid" 2>/dev/null || (( failed_jobs++ ))
-      job_pids=("${job_pids[@]/$pid}")
-    done
-    (( idx-- ))
-  fi
+  (( idx >= PARALLEL_JOBS )) && wait_for_job_slot
 
   # Build app arguments
   declare -A app_args=(
@@ -116,7 +135,7 @@ for table_name in $(toml_get_table_names); do
       app_args[arch]=$arch
       build_rv "$(serialize_array app_args)" &
       job_pids+=($!) job_names+=("$table_name ($arch)")
-      (( ++idx >= PARALLEL_JOBS )) && { wait -n; (( idx-- )); }
+      (( ++idx >= PARALLEL_JOBS )) && wait_for_job_slot
     done
   else
     build_rv "$(serialize_array app_args)" &

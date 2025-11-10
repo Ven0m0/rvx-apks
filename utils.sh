@@ -19,9 +19,27 @@
 # ================================================================================
 
 # ================================================================================
+# CONFIGURATION CONSTANTS
+# Centralized configuration values used throughout the build process
+# ================================================================================
+
+readonly MAX_RETRY_ATTEMPTS=3      # Maximum number of retry attempts for network operations
+readonly INITIAL_RETRY_DELAY=2     # Initial delay in seconds before retrying (doubles each time)
+readonly DEFAULT_COMPRESSION_LEVEL=9  # ZIP compression level (0-9, 9 = maximum)
+readonly DOWNLOAD_TIMEOUT=300      # Timeout for file downloads in seconds (5 minutes)
+readonly CONNECTION_TIMEOUT=30     # Timeout for establishing connections in seconds
+readonly REQUEST_TIMEOUT=60        # Timeout for HTTP requests in seconds
+
+# ================================================================================
 # CORE UTILITY FUNCTIONS
 # Basic functions used throughout the build process
 # ================================================================================
+
+# Error Handling Convention:
+# - abort()   : Fatal errors, exits immediately (e.g., missing dependencies, invalid config)
+# - return 1  : Recoverable errors, caller can retry or use fallback (e.g., network failures)
+# - return 0  : Success, or graceful skip (e.g., build_rv skips apps gracefully)
+# - epr()     : Print error message to stderr (does not exit or return)
 
 abort(){ echo "ABORT: $*" >&2; exit 1; }
 epr(){ echo -e "$*" >&2; }
@@ -187,39 +205,40 @@ get_highest_ver(){ sort -V | tail -n1; }
 gh_req(){
   [[ -z "${GITHUB_TOKEN:-}" ]] && epr "WARNING: GITHUB_TOKEN not set. Rate limit: 60/hr vs 5000/hr with token"
 
-  local delay=2
-  for attempt in {1..3}; do
+  local delay=$INITIAL_RETRY_DELAY
+  local attempt
+  for attempt in $(seq 1 $MAX_RETRY_ATTEMPTS); do
     local response=$(curl -sL -H "Authorization: token ${GITHUB_TOKEN:-}" "$1" 2>&1)
     [[ -n "$response" ]] && { echo "$response"; return 0; }
-    (( attempt < 3 )) && { epr "GitHub request failed (attempt $attempt/3), retry in ${delay}s..."; sleep "$delay"; (( delay *= 2 )); }
+    (( attempt < MAX_RETRY_ATTEMPTS )) && { epr "GitHub request failed (attempt $attempt/$MAX_RETRY_ATTEMPTS), retry in ${delay}s..."; sleep "$delay"; (( delay *= 2 )); }
   done
 
-  epr "ERROR: GitHub request failed after 3 attempts: $1"
+  epr "ERROR: GitHub request failed after $MAX_RETRY_ATTEMPTS attempts: $1"
   return 1
 }
 
 # Download file with retry logic and exponential backoff
 dl_file(){
   local url=$1 out=$2
-  local max_attempts=3 attempt=1 delay=2
+  local attempt=1 delay=$INITIAL_RETRY_DELAY
 
-  while ((attempt <= max_attempts)); do
-    if curl -fSL --connect-timeout 30 --max-time 300 -o "$out" "$url" 2>/dev/null; then
+  while ((attempt <= MAX_RETRY_ATTEMPTS)); do
+    if curl -fSL --connect-timeout $CONNECTION_TIMEOUT --max-time $DOWNLOAD_TIMEOUT -o "$out" "$url" 2>/dev/null; then
       # Verify file was actually downloaded and has content
       if [[ -f "$out" && -s "$out" ]]; then
         return 0
       fi
     fi
 
-    if ((attempt < max_attempts)); then
-      epr "Download failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
+    if ((attempt < MAX_RETRY_ATTEMPTS)); then
+      epr "Download failed (attempt $attempt/$MAX_RETRY_ATTEMPTS), retrying in ${delay}s..."
       sleep "$delay"
       delay=$((delay * 2))
     fi
     ((attempt++))
   done
 
-  epr "ERROR: Failed to download after $max_attempts attempts: $url"
+  epr "ERROR: Failed to download after $MAX_RETRY_ATTEMPTS attempts: $url"
   return 1
 }
 
@@ -273,14 +292,14 @@ get_apkmirror_resp(){
   local url=$1
   [[ -n "${_APKM_RESP[$url]:-}" ]] && return 0
 
-  local max_attempts=3 attempt=1 delay=2
-  while ((attempt <= max_attempts)); do
-    _APKM_RESP[$url]=$(curl -sL --connect-timeout 30 --max-time 60 "$url" 2>/dev/null)
+  local attempt=1 delay=$INITIAL_RETRY_DELAY
+  while ((attempt <= MAX_RETRY_ATTEMPTS)); do
+    _APKM_RESP[$url]=$(curl -sL --connect-timeout $CONNECTION_TIMEOUT --max-time $REQUEST_TIMEOUT "$url" 2>/dev/null)
     if [[ -n "${_APKM_RESP[$url]}" ]]; then
       return 0
     fi
-    if ((attempt < max_attempts)); then
-      epr "APKMirror request failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
+    if ((attempt < MAX_RETRY_ATTEMPTS)); then
+      epr "APKMirror request failed (attempt $attempt/$MAX_RETRY_ATTEMPTS), retrying in ${delay}s..."
       sleep "$delay"
       delay=$((delay * 2))
     fi
@@ -312,14 +331,14 @@ get_uptodown_resp(){
   local url=$1
   [[ -n "${_UPD_RESP[$url]:-}" ]] && return 0
 
-  local max_attempts=3 attempt=1 delay=2
-  while ((attempt <= max_attempts)); do
-    _UPD_RESP[$url]=$(curl -sL --connect-timeout 30 --max-time 60 "${url}/versions" 2>/dev/null)
+  local attempt=1 delay=$INITIAL_RETRY_DELAY
+  while ((attempt <= MAX_RETRY_ATTEMPTS)); do
+    _UPD_RESP[$url]=$(curl -sL --connect-timeout $CONNECTION_TIMEOUT --max-time $REQUEST_TIMEOUT "${url}/versions" 2>/dev/null)
     if [[ -n "${_UPD_RESP[$url]}" ]]; then
       return 0
     fi
-    if ((attempt < max_attempts)); then
-      epr "Uptodown request failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
+    if ((attempt < MAX_RETRY_ATTEMPTS)); then
+      epr "Uptodown request failed (attempt $attempt/$MAX_RETRY_ATTEMPTS), retrying in ${delay}s..."
       sleep "$delay"
       delay=$((delay * 2))
     fi
@@ -345,14 +364,14 @@ get_archive_resp(){
   local url=$1
   [[ -n "${_ARCH_RESP[$url]:-}" ]] && return 0
 
-  local max_attempts=3 attempt=1 delay=2
-  while ((attempt <= max_attempts)); do
-    _ARCH_RESP[$url]=$(curl -sL --connect-timeout 30 --max-time 60 "$url" 2>/dev/null)
+  local attempt=1 delay=$INITIAL_RETRY_DELAY
+  while ((attempt <= MAX_RETRY_ATTEMPTS)); do
+    _ARCH_RESP[$url]=$(curl -sL --connect-timeout $CONNECTION_TIMEOUT --max-time $REQUEST_TIMEOUT "$url" 2>/dev/null)
     if [[ -n "${_ARCH_RESP[$url]}" ]]; then
       return 0
     fi
-    if ((attempt < max_attempts)); then
-      epr "Archive.org request failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
+    if ((attempt < MAX_RETRY_ATTEMPTS)); then
+      epr "Archive.org request failed (attempt $attempt/$MAX_RETRY_ATTEMPTS), retrying in ${delay}s..."
       sleep "$delay"
       delay=$((delay * 2))
     fi
@@ -372,76 +391,6 @@ dl_archive(){
   dl_file "$dl" "$out"
 }
 
-# --- Uptodown Functions ---
-get_uptodown_resp(){
-  local url=$1
-  [[ -n "${_UPD_RESP[$url]:-}" ]] && return 0
-
-  local max_attempts=3 attempt=1 delay=2
-  while ((attempt <= max_attempts)); do
-    _UPD_RESP[$url]=$(curl -sL --connect-timeout 30 --max-time 60 "${url}/versions" 2>/dev/null)
-    if [[ -n "${_UPD_RESP[$url]}" ]]; then
-      return 0
-    fi
-    if ((attempt < max_attempts)); then
-      epr "Uptodown request failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
-      sleep "$delay"
-      delay=$((delay * 2))
-    fi
-    ((attempt++))
-  done
-  return 1
-}
-
-get_uptodown_pkg_name(){
-  grep -oP 'package">\K[^<]+' <<<"${_UPD_RESP[$1]}"|head -1
-}
-
-get_uptodown_vers(){
-  grep -oP 'data-version="\K[^"]+' <<<"${_UPD_RESP[$1]}"
-}
-
-dl_uptodown(){
-  local url=$1 ver=$2 out=$3
-  local dl; dl=$(curl -sL "${url}/download/${ver}"|grep -oP 'data-url="\K[^"]+')
-  [[ -z "$dl" ]] && return 1
-  dl_file "$dl" "$out"
-}
-
-# --- Archive.org Functions ---
-get_archive_resp(){
-  local url=$1
-  [[ -n "${_ARCH_RESP[$url]:-}" ]] && return 0
-
-  local max_attempts=3 attempt=1 delay=2
-  while ((attempt <= max_attempts)); do
-    _ARCH_RESP[$url]=$(curl -sL --connect-timeout 30 --max-time 60 "$url" 2>/dev/null)
-    if [[ -n "${_ARCH_RESP[$url]}" ]]; then
-      return 0
-    fi
-    if ((attempt < max_attempts)); then
-      epr "Archive.org request failed (attempt $attempt/$max_attempts), retrying in ${delay}s..."
-      sleep "$delay"
-      delay=$((delay * 2))
-    fi
-    ((attempt++))
-  done
-  return 1
-}
-
-get_archive_pkg_name(){
-  basename "$1"|sed 's/^apks\///'
-}
-
-get_archive_vers(){
-  grep -oP '\d+\.\d+\.\d+[^<]*\.apk' <<<"${_ARCH_RESP[$1]}"|sed 's/\.apk$//'|sort -uV
-}
-
-dl_archive(){
-  local url=$1 ver=$2 out=$3
-  local dl="${url}/${ver}.apk"
-  dl_file "$dl" "$out"
-}
 
 # ================================================================================
 # APK SIGNATURE VERIFICATION
@@ -671,6 +620,148 @@ optimize_apk(){
   fi
 
   return 0
+}
+
+# ================================================================================
+# BUILD HELPER FUNCTIONS
+# Extracted from build_rv() for better modularity and testability
+# ================================================================================
+
+# Resolve the target APK version based on configuration and available patches
+# Args:
+#   $1 - Version mode (auto, latest, beta, or specific version)
+#   $2 - Package name
+#   $3 - CLI JAR path
+#   $4 - Patches JAR path
+#   $5 - Download source (apkmirror, uptodown, archive)
+#   $6 - Download source URL
+# Returns: Prints resolved version on stdout, returns 0 on success
+resolve_app_version(){
+  local version_mode=$1 pkg_name=$2 cli=$3 ptch=$4 dl_from=$5 dl_url=$6
+  local version="" get_latest_ver=false
+
+  # List available patches for this package
+  local list_patches
+  list_patches=$(java ${JVM_OPTS:-} -jar "$cli" list-patches "$ptch" -f "$pkg_name" -v -p 2>&1)||{
+    epr "Failed to list patches for $pkg_name"
+    return 1
+  }
+
+  # Determine version based on mode
+  if [[ "$version_mode" = auto ]]; then
+    # Auto mode: use highest compatible version from patches
+    version=$(grep -oP 'Compatible.*?to \K[\d.]+' <<<"$list_patches"|get_highest_ver)||get_latest_ver=true
+  elif [[ "$version_mode" =~ ^(latest|beta)$ ]]; then
+    # Latest/beta mode: use newest available version
+    get_latest_ver=true
+  else
+    # Specific version requested
+    version=$version_mode
+  fi
+
+  # Fetch latest version from download source if needed
+  if [[ $get_latest_ver = true ]]; then
+    local pkgvers; pkgvers=$(get_"${dl_from}"_vers "$dl_url")||{
+      epr "Failed to get versions from $dl_from"
+      return 1
+    }
+    version=$(get_highest_ver <<<"$pkgvers")||version=$(head -1 <<<"$pkgvers")
+  fi
+
+  [[ -z "$version" ]] && { epr "Could not resolve version for package $pkg_name"; return 1; }
+  echo "$version"
+}
+
+# Download stock APK from configured sources with fallback
+# Args:
+#   $1 - Table name (for logging)
+#   $2 - Package name
+#   $3 - Version to download
+#   $4 - Architecture
+#   $5 - DPI
+#   $6 - Output APK path
+#   $7 - Space-separated list of tried download sources
+# Plus associative array passed via reference with download URLs
+# Returns: 0 on success, 1 on failure
+download_stock_apk(){
+  local table=$1 pkg_name=$2 version=$3 arch=$4 dpi=$5 stock_apk=$6 tried_dl=$7
+  shift 7
+  # Remaining args should be key=value pairs for download URLs
+  declare -A dl_urls
+  while [[ $# -gt 0 ]]; do
+    local key="${1%%=*}"
+    local val="${1#*=}"
+    dl_urls[$key]="$val"
+    shift
+  done
+
+  # Try each download source
+  for dl_p in archive apkmirror uptodown; do
+    [[ -z "${dl_urls[${dl_p}_dlurl]:-}" ]] && continue
+    pr "Downloading '$table' from ${dl_p}"
+
+    # Ensure response is cached
+    if ! isoneof "$dl_p" $tried_dl; then
+      get_${dl_p}_resp "${dl_urls[${dl_p}_dlurl]}"||continue
+    fi
+
+    # Attempt download
+    if dl_${dl_p} "${dl_urls[${dl_p}_dlurl]}" "$version" "$stock_apk" "$arch" "$dpi"; then
+      return 0
+    else
+      epr "ERROR: Could not download '$table' from ${dl_p} with version '$version', arch '$arch', dpi '$dpi'"
+    fi
+  done
+
+  return 1
+}
+
+# Build patch arguments string based on configuration
+# Args:
+#   $1 - Excluded patches (space-separated, quoted)
+#   $2 - Included patches (space-separated, quoted)
+#   $3 - Exclusive patches flag (true/false)
+#   $4 - Additional patcher arguments
+#   $5 - Microg patch name (optional, auto-detected)
+#   $6 - Version mode (to determine if -f flag needed)
+#   $7 - Riplib flag (true/false)
+#   $8 - Architecture (for riplib)
+# Returns: Prints patch arguments string on stdout
+setup_patch_arguments(){
+  local excluded=$1 included=$2 exclusive=$3 patcher_args=$4 microg_patch=$5 version_mode=$6 riplib=$7 arch=$8
+  local PP=""
+
+  # Add excluded/included patches
+  [[ -n "$excluded" ]] && PP+=" $(join_args "$excluded" -d)"
+  [[ -n "$included" ]] && PP+=" $(join_args "$included" -e)"
+  [[ "$exclusive" = true ]] && PP+=" --exclusive"
+
+  # Add version compatibility flag for latest/beta/specific versions
+  [[ "$version_mode" =~ ^(latest|beta)$ || "$version_mode" != "auto" ]] && PP+=" -f"
+
+  # Auto-enable MicroG patch if available
+  [[ -n "$microg_patch" ]] && PP+=" -e '$microg_patch'"
+
+  # Add custom patcher arguments
+  [[ -n "$patcher_args" ]] && PP+=" $patcher_args"
+
+  # Rip unnecessary libraries to reduce APK size
+  if [[ "$riplib" = true ]]; then
+    PP+=" --rip-lib x86_64 --rip-lib x86"
+    [[ "$arch" = "arm64-v8a" ]] && PP+=" --rip-lib armeabi-v7a"
+    [[ "$arch" = "arm-v7a" ]] && PP+=" --rip-lib arm64-v8a"
+  fi
+
+  echo "$PP"
+}
+
+# Helper function to check if value is in array
+isoneof(){
+  local needle=$1; shift
+  for item in "$@"; do
+    [[ "$item" = "$needle" ]] && return 0
+  done
+  return 1
 }
 
 # ================================================================================
