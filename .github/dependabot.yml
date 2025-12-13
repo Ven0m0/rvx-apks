@@ -11,3 +11,4 @@ updates:
         update-types:
           - "minor"
           - "patch"
+    rebase-strategy: "auto"
