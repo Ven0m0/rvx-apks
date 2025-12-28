@@ -20,6 +20,7 @@ version = "8.30.54"
 uptodown-dlurl = "https://reddit-official-app.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/redditinc/reddit"
 patcher-args = "-e 'Custom branding name for Reddit' -OappName='RVX Reddit'"
+#version = "2025.12.1"
 
 [Spotify]
 uptodown-dlurl = "https://spotify.en.uptodown.com/android"
