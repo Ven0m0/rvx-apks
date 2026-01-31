@@ -10,6 +10,10 @@ uptodown-dlurl = "https://youtube-music.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube-music"
 arch = "both"
 
+[Reddit]
+uptodown-dlurl = "https://reddit-official-app.en.uptodown.com/android"
+apkmirror-dlurl = "https://apkmirror.com/apk/redditinc/reddit"
+
 # Piko
 [X]
 uptodown-dlurl = "https://twitter.en.uptodown.com/android"

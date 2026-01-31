@@ -28,6 +28,7 @@ Here you can download and use applications selected for this repository, which a
 |:-------:|:---------------:|
 | <picture><img src="https://play-lh.googleusercontent.com/6am0i3walYwNLc08QOOhRJttQENNGkhlKajXSERf3JnPVRQczIyxw2w3DxeMRTOSdsY=s48-rw" width="20" height="20"></picture> [`YouTube`](https://play.google.com/store/apps/details?id=com.google.android.youtube) | `app.morphe.android.youtube` |
 | <picture><img src="https://play-lh.googleusercontent.com/zD8UA5CRdiPzbvTwGKtzR4KjQpxqEK6X0tGDpzEaOo0xPEvG6HUiC_0qkpTfzpuMTqU=s48-rw" width="20" height="20"></picture> [`YouTube Music`](https://play.google.com/store/apps/details?id=com.google.android.apps.youtube.music) | `app.morphe.android.apps.youtube.music` |
+| <picture><img src="https://play-lh.googleusercontent.com/NaFAbO7ExS4NRAvt2GYkNY6OQf9oVXwmdMTZzA6zrgjjSxhQuTCnjHyf7TgYcoSGqQ=s48-rw" width="20" height="20"></picture> [`Reddit`](https://play.google.com/store/apps/details?id=com.reddit.frontpage) | `com.reddit.frontpage` |
 </details>
 
 ### [🧩 `Piko`](https://github.com/crimera/piko) [![Static Badge](https://img.shields.io/badge/All-Releases-4500FF?style=flat-square&logo=android&logoColor=%23FFFFFF)](https://github.com/krvstek/uni-apks/releases?q=-piko&expanded=true)
