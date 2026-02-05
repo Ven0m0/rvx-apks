@@ -1,0 +1,42 @@
+name: 🐞 Bug report
+description: Submit a technical issue. For questions/suggestions, use Discussions!
+title: '[Bug] '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Rules:
+
+        - Speak English only.
+        - Do not submit a stuff like patch bugs or something unrelated to this repo.
+        - Do not submit a duplicate bug report.
+        - If you have a **Question** or a **Suggestion**, please go to [Discussions](https://github.com/krvstek/uni-apks/discussions) instead.
+  - type: input
+    id: app_version
+    attributes:
+      label: App Name & Version
+      placeholder: "e.g., Reddit v2077.12.05"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What's wrong?
+      placeholder: "Describe the issue..."
+    validations:
+      required: true
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Acknowledgements
+      description: |
+        By submitting this issue, you confirm that you have performed the following steps.
+        If any of the boxes below are left unchecked, or if your confirmation is found to be false (e.g., you say it's not a patch issue, but it is), your issue will be **automatically closed and rejected** without further notice.
+      options:
+        - label: I have searched both [Issues](https://github.com/krvstek/uni-apks/issues) and [Discussions](https://github.com/krvstek/uni-apks/discussions) and did not find a similar report.
+          required: true
+        - label: I confirm that this is a technical bug related to the repository/build process, and NOT a bug within the patches themselves (e.g., app features not working).
+          required: true
+        - label: I understand that feature requests, "how-to" questions, and general help belong in [Discussions](https://github.com/krvstek/uni-apks/discussions).
+          required: true
