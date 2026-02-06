@@ -228,7 +228,7 @@ get_patch_last_supported_ver() {
 	pcount=$(head -1 <<<"$op") pcount=${pcount#*(} pcount=${pcount% *}
 	if [ -z "$pcount" ]; then
 		av_apps=$(java -jar "$cli_jar" list-versions "$patches_jar" 2>&1 | awk '/Package name:/ { printf "%s\x27%s\x27", sep, $NF; sep=", " } END { print "" }')
-		abort "No patch versions found for '$pkg_name' in this patches source!\nAvailable applications found: $av_apps";
+		abort "No patch versions found for '$pkg_name' in this patches source!\nAvailable applications found: $av_apps"
 	fi
 	grep -F "($pcount patch" <<<"$op" | sed 's/ (.* patch.*//' | get_highest_ver || return 1
 }
@@ -413,9 +413,9 @@ get_archive_pkg_name() { echo "$__ARCHIVE_PKG_NAME__"; }
 
 patch_apk() {
 	local stock_input=$1 patched_apk=$2 patcher_args=$3 cli_jar=$4 patches_jar=$5
-	local cmd="env -u GITHUB_REPOSITORY java -jar $cli_jar patch $stock_input --purge -o $patched_apk -p $patches_jar --keystore=ks.keystore \
+	local cmd="env -u GITHUB_REPOSITORY java -jar '$cli_jar' patch '$stock_input' --purge -o '$patched_apk' -p '$patches_jar' --keystore=ks.keystore \
 --keystore-entry-password=r4nD0M.paS4W0rD --keystore-password=r4nD0M.paS4W0rD --signer=krvstek --keystore-entry-alias=krvstek $patcher_args"
-	if [ "$OS" = Android ]; then cmd+=" --custom-aapt2-binary=${AAPT2}"; fi
+	if [ "$OS" = Android ]; then cmd+=" --custom-aapt2-binary='${AAPT2}'"; fi
 	pr "$cmd"
 	if eval "$cmd"; then [ -f "$patched_apk" ]; else
 		rm "$patched_apk" 2>/dev/null || :
