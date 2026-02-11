@@ -35,7 +35,7 @@ jobs:
               echo 'matrix={"include":[{"id":"YouTube"},{"id":"Music"},{"id":"Reddit"}]}' >> $GITHUB_OUTPUT
               ;;
             piko)
-              echo 'matrix={"include":[{"id":"X"}]}' >> $GITHUB_OUTPUT
+              echo 'matrix={"include":[{"id":"X"},{"id":"Twitter"}]}' >> $GITHUB_OUTPUT
               ;;
           esac
 

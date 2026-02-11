@@ -24,3 +24,11 @@ patches-source = "crimera/piko"
 cli-source = "inotia00/revanced-cli"
 brand = "Piko"
 included-patches = "'Dynamic color'"
+
+[Twitter]
+uptodown-dlurl = "https://twitter.en.uptodown.com/android"
+apkmirror-dlurl = "https://apkmirror.com/apk/x-corp/twitter"
+patches-source = "crimera/piko"
+cli-source = "inotia00/revanced-cli"
+brand = "Piko"
+included-patches = "'Bring back twitter' 'Dynamic color'"
