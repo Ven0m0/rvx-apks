@@ -11,6 +11,14 @@ fi
 
 source utils.sh
 
+if [ "${1-}" = "separate-config" ] || [ "${1-}" = "combine-logs" ]; then
+	case "${1}" in
+		separate-config) separate_config "${@:2}" ;;
+		combine-logs) combine_logs "${@:2}" ;;
+	esac
+	exit 0
+fi
+
 if [ "$OS" = Android ]; then
     if ! [ -d "$HOME/storage" ]; then
         pr "Requesting Termux storage permission..."

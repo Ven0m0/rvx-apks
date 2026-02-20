@@ -590,3 +590,50 @@ build_uni() {
 
 list_args() { tr -d '\t\r' <<<"$1" | tr -s ' ' | sed 's/" "/"\n"/g' | sed 's/\([^"]\)"\([^"]\)/\1'\''\2/g' | grep -v '^$' || :; }
 join_args() { list_args "$1" | sed "s/^/${2} /" | paste -sd " " - || :; }
+separate_config() {
+	if [[ $# -ne 3 ]]; then
+		echo "Usage: separate_config <config_file> <key_to_match> <output_file>"
+		return 1
+	fi
+	local config_file="$1" key_to_match="$2" output_file="$3" section_content
+	section_content=$(awk -v key="$key_to_match" '
+	  BEGIN { print "[" key "]" }
+	  /^\[/ && tolower($1) == "[" tolower(key) "]" { in_section = 1; next }
+	  /^\[/ { in_section = 0 }
+	  in_section == 1
+	' "$config_file")
+	if [[ -z "$section_content" ]]; then
+		echo "Key '$key_to_match' not found in the config file."
+		return 1
+	fi
+	echo "$section_content" > "$output_file"
+	echo "Section for '$key_to_match' written to $output_file"
+}
+combine_logs() {
+	local build_logs_dir="${1:-build-logs}"
+	local log_files=()
+	while IFS= read -r -d '' log; do
+		log_files+=("$log")
+	done < <(find "$build_logs_dir" -name "build.md" -type f -print0 2>/dev/null | sort -z || true)
+	for log in "${log_files[@]}"; do
+		grep "^🟢" "$log" 2>/dev/null || true
+	done
+	echo ""
+	for log in "${log_files[@]}"; do
+		if grep -q "MicroG" "$log" 2>/dev/null; then
+			grep "^-.*MicroG" "$log" 2>/dev/null || true
+			echo ""
+			break
+		fi
+	done
+
+	local temp_file
+	temp_file=$(mktemp)
+	trap 'rm -f "$temp_file"' RETURN
+	for log in "${log_files[@]}"; do
+		awk '/^>.*CLI:/{p=1} p{print} /^\[.*Changelog\]/{print ""; p=0}' "$log" 2>/dev/null >> "$temp_file" || true
+	done
+	if [ -s "$temp_file" ]; then
+		awk '!seen[$0]++' "$temp_file"
+	fi
+}
