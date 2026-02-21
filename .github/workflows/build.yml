@@ -27,17 +27,17 @@ jobs:
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+          submodules: true
+
       - name: Set matrix based on patch source
         id: set-matrix
         run: |
-          case "${{ inputs.patch_source }}" in
-            morphe)
-              echo 'matrix={"include":[{"id":"YouTube"},{"id":"Music"},{"id":"Reddit"}]}' >> $GITHUB_OUTPUT
-              ;;
-            piko)
-              echo 'matrix={"include":[{"id":"X"},{"id":"Twitter"}]}' >> $GITHUB_OUTPUT
-              ;;
-          esac
+          matrix=$(./build.sh get-matrix config.toml ${{ inputs.patch_source }})
+          echo "matrix=${matrix}" >> $GITHUB_OUTPUT
 
   run:
     needs: prepare

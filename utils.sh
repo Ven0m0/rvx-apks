@@ -637,3 +637,28 @@ combine_logs() {
 		awk '!seen[$0]++' "$temp_file"
 	fi
 }
+get_matrix() {
+	local config_file="${1:-config.toml}" patch_source="${2:-morphe}"
+	toml_prep "$config_file" || abort "could not find config file '$config_file'"
+
+	local main_t def_brand
+	main_t=$(toml_get_table_main)
+	def_brand=$(toml_get "$main_t" brand) || def_brand="Morphe"
+
+	local ids=() patch_source_lower="${patch_source,,}"
+	while IFS= read -r table; do
+		local table_t brand
+		table_t=$(toml_get_table "$table")
+		brand=$(toml_get "$table_t" brand) || brand="$def_brand"
+		if [ "${brand,,}" = "$patch_source_lower" ]; then
+			ids+=("{\"id\":\"${table}\"}")
+		fi
+	done < <(toml_get_table_names)
+
+	if [ ${#ids[@]} -eq 0 ]; then
+		abort "No apps found for patch source '$patch_source'"
+	fi
+	local matrix
+	printf -v matrix '%s,' "${ids[@]}"
+	echo "{\"include\":[${matrix%,}]}"
+}

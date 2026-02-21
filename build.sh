@@ -10,11 +10,13 @@ if [ "${1-}" = "clean" ]; then
 fi
 
 source utils.sh
+set_prebuilts
 
-if [ "${1-}" = "separate-config" ] || [ "${1-}" = "combine-logs" ]; then
+if [ "${1-}" = "separate-config" ] || [ "${1-}" = "combine-logs" ] || [ "${1-}" = "get-matrix" ]; then
 	case "${1}" in
 		separate-config) separate_config "${@:2}" ;;
 		combine-logs) combine_logs "${@:2}" ;;
+		get-matrix) get_matrix "${@:2}" ;;
 	esac
 	exit 0
 fi
@@ -39,8 +41,6 @@ else
     install_pkg java openjdk-21-jdk
 fi
 install_pkg zip
-
-set_prebuilts
 
 vtf() { if ! isoneof "${1}" "true" "false"; then abort "ERROR: '${1}' is not a valid option for '${2}': only true or false is allowed"; fi; }
 
