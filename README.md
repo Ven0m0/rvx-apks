@@ -9,6 +9,12 @@
 Here you can download and use applications selected for this repository, which are modified and extended with many functionalities that will certainly be useful to you.
 </div>
 
+> [!IMPORTANT]
+> ### 📱 [Keep Android Open](https://keepandroidopen.org/)
+> **It's your phone, but Google wants to decide what you can install.**  
+> Starting September 2026, they plan to block apps that don't have their "official" stamp of approval. This hits every independent project, your privacy, and your right to use your device the way you want.  
+> **[Don't let them lock your phone.](https://keepandroidopen.org/)**
+
 ## 🔥 Features
 
 - 🛑 **Ad-blocking**: blocks every kind of advertisement (who needs them?).
