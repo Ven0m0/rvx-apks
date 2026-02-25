@@ -21,25 +21,8 @@ if [ "${1-}" = "separate-config" ] || [ "${1-}" = "combine-logs" ] || [ "${1-}" 
 	exit 0
 fi
 
-if [ "$OS" = Android ]; then
-    if ! [ -d "$HOME/storage" ]; then
-        pr "Requesting Termux storage permission..."
-        pr "Please allow storage access in the popup"
-      	sleep 5
-      	termux-setup-storage
-    fi
-    OUTPUT_DIR="/sdcard/Download/uni-output"
-    mkdir -p "$OUTPUT_DIR"
-else
-    OUTPUT_DIR="$BUILD_DIR"
-fi
-
 install_pkg jq
-if [ "$OS" = Android ]; then
-    install_pkg java openjdk-21
-else
-    install_pkg java openjdk-21-jdk
-fi
+install_pkg java openjdk-21-jdk
 install_pkg zip
 
 vtf() { if ! isoneof "${1}" "true" "false"; then abort "ERROR: '${1}' is not a valid option for '${2}': only true or false is allowed"; fi; }
@@ -47,9 +30,7 @@ vtf() { if ! isoneof "${1}" "true" "false"; then abort "ERROR: '${1}' is not a v
 # -- Main config --
 toml_prep "${1:-config.toml}" || abort "could not find config file '${1:-config.toml}'\n\tUsage: $0 <config.toml>"
 main_config_t=$(toml_get_table_main)
-if ! PARALLEL_JOBS=$(toml_get "$main_config_t" parallel-jobs); then
-	if [ "$OS" = Android ]; then PARALLEL_JOBS=1; else PARALLEL_JOBS=$(nproc); fi
-fi
+PARALLEL_JOBS=$(toml_get "$main_config_t" parallel-jobs) || PARALLEL_JOBS=$(nproc)
 DEF_PATCHES_VER=$(toml_get "$main_config_t" patches-version) || DEF_PATCHES_VER="latest"
 DEF_CLI_VER=$(toml_get "$main_config_t" cli-version) || DEF_CLI_VER="latest"
 DEF_PATCHES_SRC=$(toml_get "$main_config_t" patches-source) || DEF_PATCHES_SRC="MorpheApp/morphe-patches"
@@ -147,17 +128,6 @@ done
 wait
 rm -rf temp/tmp.*
 if [ -z "$(ls -A1 "${BUILD_DIR}")" ]; then abort "All builds failed."; fi
-
-if [ "$OS" = Android ]; then
-    pr "Moving outputs to /sdcard/Download/uni-output"
-    for apk in "${BUILD_DIR}"/*; do
-        if [ -f "$apk" ]; then
-            mv -f "$apk" "$OUTPUT_DIR/"
-            pr "$(basename "$apk")"
-        fi
-    done
-    am start -a android.intent.action.VIEW -d "file:///sdcard/Download/uni-output" -t resource/folder >/dev/null 2>&1 || :
-fi
 
 log "\n- ▶️ » Install [MicroG-RE](https://github.com/MorpheApp/MicroG-RE/releases) for YouTube and YT Music APKs\n"
 log "$(cat "$TEMP_DIR"/*/changelog.md)"

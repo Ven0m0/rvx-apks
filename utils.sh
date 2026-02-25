@@ -6,7 +6,6 @@ BIN_DIR="bin"
 BUILD_DIR="build"
 
 if [ "${GITHUB_TOKEN-}" ]; then GH_HEADER="Authorization: token ${GITHUB_TOKEN}"; else GH_HEADER=; fi
-OS=$(uname -o)
 
 toml_prep() {
 	if [ ! -f "$1" ]; then return 1; fi
@@ -56,9 +55,7 @@ install_pkg() {
     fi
     pr "Installing $pkg..."
     
-    if command -v pkg >/dev/null 2>&1; then
-        pkg install -y "$pkg"
-    elif command -v apt-get >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
         sudo apt-get install -y "$pkg"
     elif command -v dnf >/dev/null 2>&1; then
         sudo dnf install -y "$pkg"
@@ -150,12 +147,8 @@ get_prebuilts() {
 
 set_prebuilts() {
 	APKSIGNER="${BIN_DIR}/apksigner.jar"
-	local arch
-	arch=$(uname -m)
-	if [ "$arch" = aarch64 ]; then arch=arm64; elif [ "${arch:0:5}" = "armv7" ]; then arch=arm; fi
-	HTMLQ="${BIN_DIR}/htmlq/htmlq-${arch}"
-	AAPT2="${BIN_DIR}/aapt2/aapt2-${arch}"
-	TOML="${BIN_DIR}/toml/tq-${arch}"
+	HTMLQ="${BIN_DIR}/htmlq"
+	TOML="${BIN_DIR}/tq"
 }
 
 _req() {
@@ -439,7 +432,6 @@ patch_apk() {
 	local stock_input=$1 patched_apk=$2 patcher_args=$3 cli_jar=$4 patches_jar=$5
 	local cmd="java -jar '$cli_jar' patch '$stock_input' --purge -o '$patched_apk' -p '$patches_jar' --keystore=ks.keystore \
 --keystore-entry-password=r4nD0M.paS4W0rD --keystore-password=r4nD0M.paS4W0rD --signer=krvstek --keystore-entry-alias=krvstek $patcher_args"
-	if [ "$OS" = Android ]; then cmd+=" --custom-aapt2-binary='${AAPT2}'"; fi
 	pr "$cmd"
 	if eval "$cmd"; then [ -f "$patched_apk" ]; else
 		rm "$patched_apk" 2>/dev/null || :
