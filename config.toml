@@ -9,7 +9,7 @@ patcher-args = "-e 'Change header' -Ocustom=icons/YouTube/header -e 'Custom bran
 [Music]
 uptodown-dlurl = "https://youtube-music.en.uptodown.com/android"
 apkmirror-dlurl = "https://apkmirror.com/apk/google-inc/youtube-music"
-patcher-args = "-e 'Custom branding' -OcustomName='Morphe Music' -OcustomIcon=icons/Music/branding"
+patcher-args = "-e 'Change header' -Ocustom=icons/Music/header -e 'Custom branding' -OcustomIcon=icons/Music/branding -OcustomName='Morphe Music'"
 arch = "both"
 
 [Reddit]
